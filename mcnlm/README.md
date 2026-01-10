@@ -17,5 +17,5 @@ poetry install
 poetry env activate
 
 # run
-poetry run python env_test.py
+poetry run mcnlm
 ```
