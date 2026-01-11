@@ -11,6 +11,7 @@ class NLMParams:
     h_factor: float = 0.4
     patch_radius: int = 2
     search_radius: int = 10
+    spatial_sigma: float = 10.0
 
     @property
     def h(self):
@@ -22,7 +23,7 @@ class NLMParams:
 
 
 @njit(parallel=True)
-def nlm_denoise_fast(padded, H, W, pad, patch_radius, search_radius, h, sigma2):
+def nlm_denoise_fast(padded, H, W, pad, patch_radius, search_radius, h, sigma2, spatial_sigma):
     """
     Fast Non-Local Means denoising using Numba JIT compilation and parallelization.
     """
@@ -61,10 +62,14 @@ def nlm_denoise_fast(padded, H, W, pad, patch_radius, search_radius, h, sigma2):
 
                     # Compute squared Euclidean distance between patches
                     d2 = np.mean((patch_i - patch_q) ** 2)
+                    d2 = max(d2 - 2.0 * sigma2, 0.0)
 
-                    # Compute Non-Local Means weight
-                    w = np.exp(-max(d2 - 2 * sigma2, 0.0) / h2)
+                    w_r = np.exp(-d2 / h2)
+                    
+                    spatial_d2 = di * di + dj * dj
+                    w_s = np.exp(-spatial_d2 / (2.0 * spatial_sigma**2))
 
+                    w = w_r * w_s
                     # Accumulate weighted pixel values
                     acc += w * padded[qi, qj]
                     norm += w  # Accumulate weights for normalization
@@ -73,7 +78,6 @@ def nlm_denoise_fast(padded, H, W, pad, patch_radius, search_radius, h, sigma2):
             out[i, j] = acc / norm
 
     return out
-
 
 def nlm_denoise(img, params):
     H, W = img.shape
@@ -89,14 +93,25 @@ def nlm_denoise(img, params):
         params.search_radius,
         params.h,
         params.sigma**2,
+        params.spatial_sigma
     )
 
 
 # Test naive nlm
-def test_naive_nlm():
-    image = load_image("imgs/clock.tiff")
-    SIGMA = 15
+def test_naive_nlm(image_path):
+    image = load_image(image_path)
+    
+    SIGMA = 17
     noisy = add_gaussian_noise(image * 255, sigma=SIGMA).astype(np.float32) / 255.0
-    params = NLMParams(sigma=SIGMA / 255, patch_radius=2, search_radius=10)
+    
+    params = NLMParams(
+        sigma = SIGMA / 255.0,
+        h_factor = 0.4,
+        patch_radius = 2,
+        search_radius = 10
+    )
+    
+    
     denoised = nlm_denoise(noisy, params)
+    
     show_results(image, noisy, denoised)

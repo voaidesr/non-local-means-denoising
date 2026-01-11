@@ -13,9 +13,18 @@ def load_image(path, fallback_size=(100, 100)):
 
 def mse(img1, img2):
     """
-    MSE between two images.
+    MSE (Mean square error) between two images.
     """
     return np.mean((img1 - img2) ** 2)
+
+def psnr(img1, img2, max_pixel=1.0):
+    """
+    Compute PSNR (Peak Signal-to-Noise Ratio) between two images.
+    """
+    error = mse(img1, img2)
+    if error == 0:
+        return float('inf')  # identical images
+    return 10 * np.log10((max_pixel ** 2) / error)
 
 
 def add_gaussian_noise(image, sigma, mean=0):
