@@ -12,3 +12,5 @@ def main():
     # mc_nlm.show_mask("imgs/clock.tiff", 10, 128)
     
     naive_nlm.test_naive_nlm()
+    
+    # mc_nlm.show_matches("imgs/clock.tiff", [(100, 100)])
