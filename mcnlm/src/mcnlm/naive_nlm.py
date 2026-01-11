@@ -119,5 +119,5 @@ def test_naive_nlm():
     plt.axis('off')
     plt.show()
 
-if __name__ == "__main__":
-    test_naive_nlm()
+# if __name__ == "__main__":
+#     test_naive_nlm()

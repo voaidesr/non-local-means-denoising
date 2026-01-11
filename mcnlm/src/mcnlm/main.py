@@ -57,9 +57,8 @@ def test_noise_extraction():
 
 
 def main():
-    import os
-    print(os.getcwd())
-    print("MCNLM")
-    test_noise_extraction()
-    print("Naive NLM")
+    # print("MCNLM")
+    # test_noise_extraction()
+    # print("Naive NLM")
+    
     naive_nlm.test_naive_nlm()
