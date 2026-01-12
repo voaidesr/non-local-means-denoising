@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mcnlm.utils import mse, add_gaussian_noise, load_image, psnr
+from mcnlm.utils import mse, add_gaussian_noise, load_image, psnr, show_results
 import mcnlm.mc_nlm as mc_nlm
 import mcnlm.naive_nlm as naive_nlm
 
@@ -46,7 +46,7 @@ def run_mc_convergence(image_path, xis):
             spatial_sigma = 1e10,
             sampling_prob = xi
         )
-        mc = mc_nlm.mcnlm_denoise(noisy, mc_params) * 255.0
+        mc = mc_nlm.test_mcnlm(noisy, mc_params) * 255.0
         mc_clean_mse.append(mse(mc, image))
         mc_clean_psnr.append(psnr(mc, image))
         print(f"  MSE vs clean: {mc_clean_mse[-1]}, PSNR vs clean: {mc_clean_psnr[-1]}")
