@@ -135,3 +135,107 @@ In the figures \ref{fig1}, \ref{fig2} we can see how the MCNLM algorithm behaves
     \caption{MCNLM with $\xi \in \{0.3,  0.5, 0.8\}$}
     \label{fig2}
 \end{figure}
+
+
+\section{Stochastic Approximation of Non-Local Means}
+We yield the question whether the Monte-Carlo variant of our algorithm is indeeed reliable and aproaches the full Non-Local Means solution. For this we need to analyze the approximation error $|Z - z|$.
+
+To understand our approximation, we will study the empirical sampling ratio $S_{n}$. The law of large numbers states that the empirical mean $S_{n}$ of a large number of indepent random variable is close to the true mean.
+
+\subsection{Probability Bounds}
+For any error bound $\varepsilon > 0$ and any sampling pattern $p$ with $0 < p_{j} <= 1$ and $\sum_{j=1}^{n}p_{j} = \varepsilon$ we want to study the probability: 
+\begin{equation}
+    \mathbb{P}(|S_{n} - \mathbb{E}[S_{n}]| > \varepsilon)
+\end{equation}
+
+From the Cebyshev inequality we know that:
+\begin{equation}
+    \mathbb{P}(|S_{n} - \mathbb{E}[S_{n}]| > \varepsilon) < \frac{Var[I_{1}]}{n\varepsilon^{2}}, \forall \varepsilon > 0
+\end{equation}
+
+This bound provided by the Cebyshev inequality above is too loose, only providing a linear descent of the error probability as $n \to \infty$. 
+
+We can use the Bernstein inequality to provide a much tighter exponential bound. The Bernstein inequality states that for $X_{1}, \dots X_{n}$, a sequence of independent bounded random variables ($l_{j} <= X_{j} <= u_{j}$, where $u_{j}$ and $l_{j}$ are constants), the following is true:
+\begin{equation}
+    \mathbb{P}(|S_{n} - \mathbb{E}[S_{n}]| > \varepsilon) \le exp \left (-\frac{n\varepsilon^2}{2(\frac{1}{n}\sum_{j=1}^{n}Var[X_{j}] + M\epsilon/3)} \right )
+\end{equation}
+
+where $S_{n} = \frac{1}{n}\sum_{j=1}^{n}X_{j}$ and $M = max_{1 \le j \le n}\frac{u_{j} - l_{j}}{2}$
+
+In our situation, $X_{j} = I_{j}$, $M=1$, $\mathbb{E}[S_{n}] = \xi$, so:
+$$
+\frac{1}{n}\sum_{j=1}^{n}Var[X_{j}] = \frac{1}{n}\sum_{j=1}^{n}p_{j}(1-p_{j}) = \xi(1-\xi).
+$$
+
+By substituing this result in the equation above we get an exponential bound on the error probability.
+
+
+\subsection{General Error Probability Bound}
+To rigorously quantify the reliability of the Monte Carlo approximation, we refer to the concentration bound derived in the literature. For a sample size $n$ and an error tolerance $\varepsilon > 0$, the probability that the Monte Carlo estimate $Z(\mathbf{p})$ deviates from the exact NLM value $z$ is bounded by exponential decay terms:
+
+\begin{equation}
+    \begin{split}
+    \mathbb{P}(|Z(\boldsymbol{p}) - z| > \varepsilon ) \leq & \exp \{-n\xi\} \\
+    & + \exp \left\{ \frac{-n(\mu_B \varepsilon)^2}{ 2 \left( \frac{1}{n} \sum_{j=1}^n \alpha_j^2 \left( \frac{1-p_j}{p_j} \right) + (\mu_B \varepsilon)M_\alpha/6 \right) } \right\} \\
+    & + \exp \left\{ \frac{-n(\mu_B \varepsilon)^2}{ 2 \left( \frac{1}{n} \sum_{j=1}^n \beta_j^2 \left( \frac{1-p_j}{p_j} \right) + (\mu_B \varepsilon)M_\beta/6 \right) } \right\},
+    \end{split}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $\xi$ represents the sampling density (e.g., $p_j$ in uniform sampling).
+    \item $\mu_B$ is the average similarity weight (expected value of the denominator).
+    \item $K$ is a constant bound dependent on the variance of the weights in the search window.
+\end{itemize}
+
+
+\textbf{Example: }
+To validate this bound, we consider a concrete example of a one-dimensional signal with length $n = 10^4$, corrupted by Gaussian noise with standard deviation $\sigma = 5/255$.
+
+We apply Monte Carlo NLM to denoise a pixel using a \textbf{uniform sampling pattern} where only $5\%$ of the pixels are sampled ($p_j = \xi = 0.05$ for all $j$). We set an error tolerance of $\varepsilon = 0.01$.
+
+Using the derived constants:
+\begin{itemize}
+    \item Average similarity weight: $\mu_B = 0.3015$
+    \item Variance term 1: $\frac{1}{n} \sum \alpha_j^2 \approx 1.335 \times 10^{-4}$
+    \item Variance term 2: $\frac{1}{n} \sum \beta_j^2 \approx 1.452 \times 10^{-4}$
+\end{itemize}
+
+And substituting these values into the probability bound yields:
+\begin{equation}
+    \mathbb{P}(|Z(\mathbf{p}) - z| > 0.01 ) \leq 6.516 \times 10^{-6}
+\end{equation}
+
+\vspace*{1cm}
+
+\textbf{Conclusion:} This result demonstrates that even when using only \textbf{5\% of the samples}, the Monte Carlo estimate stays within $1\%$ of the true NLM result with overwhelming probability ($1 - 6.5 \times 10^{-6}$). This theoretical calculation validates the rapid MSE convergence observed in our empirical charts.
+
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{res/convergence1_mse.pdf}
+        \caption{MSE across different sampling probabilities}
+        \label{fig:img1}
+    \end{subfigure}
+    \hfill % Adds flexible space between images
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{res/convergence1_psnr.pdf}
+        \caption{PSNR across different sampling probabilities}
+        \label{fig:img2}
+    \end{subfigure}
+
+    \caption{Monte-carlo converge results}
+    \label{fig:both_images}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.65\linewidth]{res/window_size_mse.pdf}
+    \caption{NLM vs MCNLM mse for different window sizes}
+    \label{fig1}
+\end{figure}
+
+
