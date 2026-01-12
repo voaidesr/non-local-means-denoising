@@ -4,8 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from numpy.lib.stride_tricks import sliding_window_view
+from numba import njit, prange
 
-from mcnlm.utils import load_image, show_results, add_gaussian_noise
+from mcnlm.utils import load_image, add_gaussian_noise
 
 # Params
 @dataclass
@@ -21,31 +22,30 @@ class MCNLMParams:
     def patch_radius(self):
         return self.patch_size // 2
 
-# MCNLM Kernel 
-def mcnlm_local(y_patch, window_patches, window_coords, params):
+# MCNLM Kernel
+def mcnlm_local(y_patch, window_patches, window_coords, r, f, sigma, h, sampling_prob):
     n = len(window_patches)
 
-    mask = np.random.rand(n) < params.sampling_prob
+    mask = np.random.rand(n) < sampling_prob
     if not np.any(mask):
         return y_patch[len(y_patch) // 2]
 
     patches = window_patches[mask]
-    coords  = window_coords[mask]
+    # coords = window_coords[mask]
 
-    h = params.h_factor * params.sigma
     h2 = h * h
-    sigma2 = params.sigma * params.sigma
+    sigma2 = sigma * sigma
 
-    diffs = patches - y_patch            
-    d2 = np.mean(diffs * diffs, axis=1)      
+    diffs = patches - y_patch
+    d2 = np.mean(diffs * diffs, axis=1)
     d2 = np.maximum(d2 - 2.0 * sigma2, 0.0)
-    w_r = np.exp(-d2 / h2)                
+    w_r = np.exp(-d2 / h2)
 
-    spatial_d2 = np.sum(coords * coords, axis=1)
-    w_s = np.exp(-spatial_d2 / (2.0 * params.spatial_sigma**2))
-    
+    # spatial_d2 = np.sum(coords * coords, axis=1)
+    # w_s = np.exp(-spatial_d2 / (2.0 * params.spatial_sigma**2))
+
     w = w_r
-    
+
     s = np.sum(w)
     if s == 0.0:
         return y_patch[len(y_patch) // 2]
@@ -73,58 +73,54 @@ def window_coords(rho):
 
 
 # MCNLM
-def mcnlm_denoise(noisy, params):
-    h, w = noisy.shape
+# @njit(parallel=True)
+def mcnlm_denoise(noisy, r, f, sigma, h, sampling_prob):
     out = np.zeros_like(noisy)
 
-    pad = params.patch_radius
-    rho = params.search_radius
-    total_pad = pad + rho
+    patch_radius = f // 2
+    total_pad = r + patch_radius
 
-    padded = np.pad(noisy, total_pad, mode="reflect")
-    coords = window_coords(rho)
+    coords = window_coords(r)
 
-    for i in range(h):
-        print(f"Row {i + 1}/{h}", end="\r")
-        for j in range(w):
+    for i in range(noisy.shape[0] - 2 * total_pad):
+        for j in range(noisy.shape[1] - 2 * total_pad):
             pi, pj = i + total_pad, j + total_pad
 
-            y_patch = padded[pi - pad : pi + pad + 1, pj - pad : pj + pad + 1].flatten()
+            y_patch = noisy[pi - patch_radius : pi + patch_radius + 1, 
+                            pj - patch_radius : pj + patch_radius + 1].flatten()
 
-            window = extract_search_window(padded, pi, pj, rho, pad)
-            patches = window_patches(window, params.patch_size)
+            window = extract_search_window(noisy, pi, pj, r, patch_radius)
+            patches = window_patches(window, f)
 
-            out[i, j] = mcnlm_local(y_patch, patches, coords, params)
+            out[pi, pj] = mcnlm_local(y_patch, patches, coords, r, f, sigma, h, sampling_prob)
 
     print()
     return out
 
 
-def test_mcnlm(image_path):
-    image = load_image(image_path)
-    
-    SIGMA = 17
-    noisy = add_gaussian_noise(image * 255, sigma=SIGMA).astype(np.float32) / 255.0
-    
-    params = MCNLMParams(
-        sigma = SIGMA / 255.0,
-        h_factor = 0.4,
-        patch_size = 5,
-        search_radius = 10,
-        spatial_sigma = 10,
-        sampling_prob = 1
-    )
-    
-    denoised = mcnlm_denoise(noisy, params)
+def test_mcnlm(noisy, params: MCNLMParams):
+    total_pad = params.search_radius + params.patch_radius
+    padded = np.pad(noisy, total_pad, mode="reflect")
+    denoised = mcnlm_denoise(padded, 
+                             params.search_radius, 
+                             params.patch_size, 
+                             params.sigma, 
+                             params.h_factor * params.sigma, 
+                             params.sampling_prob)
 
-    show_results(image, noisy, denoised)
+    # Remove padding
+    denoised = denoised[total_pad:-total_pad, total_pad:-total_pad]
+
+    return denoised
+
+
 
 def show_matches(image_path, points, K=10000):
     """
     Show strong non-local matches for a list of points.
     """
     image = load_image(image_path)
-    
+
     SIGMA = 17
     noisy = add_gaussian_noise(image * 255, sigma=SIGMA).astype(np.float32) / 255.0
     image = noisy
@@ -137,7 +133,7 @@ def show_matches(image_path, points, K=10000):
         spatial_sigma = 10,
         sampling_prob = 0.3
     )
-    
+
     pad = params.patch_radius
     rho = params.search_radius
     total_pad = pad + rho
