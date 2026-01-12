@@ -1,16 +1,16 @@
 \section{Introduction}
 
 Image noise is a random variation of brightness or color information. In most real-life cases, it can be modeled as additive white Gaussian noise:
-
-\[
+\begin{equation}
 y = x + \eta
-\]
+\end{equation}
 
 Where $y$ is the noisy pixel, $x$ the pure pixel and $\eta \sim \mathcal{N}(0, \sigma)$ is the noise.
 
 \subsection{Denoising Techniques}
 Traditional denoising techniques, such as Gaussian smoothing, Median filtering or Local means, operate on the principle of locality, assuming that the true value of the pixel must be similar to the values of its neighbours. This is effective at removing noise, but it also leads to loss of fine textures and blurring of edges.
 
+\subsection{Non-Local Means}
 The Non-Local Means estimates the true value of the pixel by computing a wieghted average of different patches, using a weight function that prioritizes pixels with similar structural patterns.
 
 Given a noisy pixel, the surrounding patch $\mathbf{y}$ will be used to check for similarity with other patches. This object can be flattened into a d-pixel: $\mathbf{y} \in \mathbb{R}^d$.
@@ -18,21 +18,30 @@ Given a noisy pixel, the surrounding patch $\mathbf{y}$ will be used to check fo
 The algorithm requires a set of patches $\mathcal{X} = \{ \mathbf{x}_1, \dots, \mathbf{x}_n \}$ that are obtained from reference images.
 
 NLM replaces the noisy pixel with the weighted average of pixels in the reference set:
-
-\[
+\begin{equation}
 z = \frac{
     \sum_{i = 1}^n w_i x_i
 }{
     \sum_{i = 1}^n w_i
 }
-\]
+\label{eq:nlm}
+\end{equation}
 
 \noindent where $x_i$ represents the center pixel in the patch $\mathbf{x_i}$, and the weight $w_i$ measures the similarity between the match $\mathbf{y}$ and $\mathbf{x_i}$.
 
-A standard choice for the weight function is:
+\newpage
 
-$$
+A standard choice for the weight function is:
+\begin{equation}
 w_i = e^{
     - || \mathbf{y} - \mathbf{x_i} ||^2 / (2h_r^2)
 }
-$$
+\end{equation}
+
+Where $h_r$ is a scalar parameter that controls the decay of the distribution: small values create a fast decay and ensure a focus on stricter similarity between patches, whereas larger values allow different patches to have a greater weight. And $|| \mathbf{\cdot} ||$ is the Euclidian norm.
+
+The downside of NLM is it high computational complexity. The most expensive step of this algorithms is computing the weights $\mathbf{w}_i$, which leads to $\mathcal{O}(mnd)$ operations, where $m$ is the number of pixels to be denoised, $n$ the number of patches and $d$ the dimensions of the patch.
+
+\subsection{Monte Carlo Non-Local Means (MCNLM)}
+
+This paper focuses on the implementation and effectiveness of a method developed in \cite{mcnlm}. The main focus of the approach is to approximate \ref{eq:nlm} by selecting randomly $k$ reference pixel and creating a $k$-subset of weights $\{w_i\}^k$. The computational complexity of this approach is $\mathcal{O}(mkd)$, which is significantly lower for $k <\!\!< n$.

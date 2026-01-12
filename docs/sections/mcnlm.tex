@@ -1,0 +1,9 @@
+\section{Monte Carlo Non-Local Means}
+
+In this section, we discuss the full implementation of the algorithm, the correctness of the approach and some other optimizations that can be added to the method.
+
+\subsection{Sampling Patches}
+
+There are two ways to extract reference patches. The first one is based on picking them from the original noisy, image, which is called \textit{internal denoising}. The second method is based on having the patches taken from a large database of other images, which is called \textit{external denoising}. The paper focuses on internal denoising.
+
+The Monte Carlo sampling is done on the set $\mathcal{X} = \{x_1, \dots, x_n \}$, considering each reference patch independent. The process is determined by a sequence of random variables $\{I_j\}_{j=1}^n$, where $I_j \sim \operatorname{Bernoulli}(p_j)$. The weight will be sampled only if $I_j = 1$.
