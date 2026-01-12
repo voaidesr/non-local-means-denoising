@@ -4,8 +4,6 @@ import numpy as np
 from dataclasses import dataclass
 from numba import njit, prange
 
-from mcnlm.utils import load_image, add_gaussian_noise
-
 @dataclass
 class MCNLMParams:
     sigma: float

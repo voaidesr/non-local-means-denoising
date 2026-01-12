@@ -1,0 +1,28 @@
+\section{Noise Estimation and Algorithm Implementation}
+
+In the above algorithm it is assumed that the noise standard deviation $\sigma$ is known. However, in real-life applications this is not always the case. There are multiple methods for estimating this value, but we are going to focus on a simple one based on the Fast Fourier Transform. The idea is that, in the frequency domain, the high-frequency components are more likely to represent noise rather than actual image details. By analyzing these components, we can estimate the noise level. A pseudo-code of the algorithm is given below.
+
+\begin{algorithm}[H]
+\caption{Gaussian Noise Standard Deviation Estimation using FFT}
+\label{alg:fft_sigma}
+\begin{algorithmic}[1]
+\Require Input image
+\State $F \gets \text{FFT}(\text{image})$
+\State Shift the zero-frequency component $F$ to the center of the spectrum
+\State Define a high-frequency mask $M$ that selects the high-frequency components
+\State $H \gets F \cdot M$
+\State $noise \gets$ Inverse FFT Shift of $H$
+\State Keep only the real part of $noise$ and remove the mean.
+\State \Return $\sigma \gets std(noise)$
+
+\end{algorithmic}
+\end{algorithm}
+
+While this obviously doesn't yield perfect results like already knowing the noise level, it provides a reasonable estimate that can be used in the denoising process. We can see that the estimated noise standard deviation is close to the actual value, which is sufficient for our denoising algorithm to perform effectively. However, the blurring effect can starts to be noticeable when we compare the two images side by side.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=1\linewidth]{res/noise_comparison_visual2.pdf}
+    \caption{Comparison between using a known $\sigma$ and an estimated one}
+    \label{fig1}
+\end{figure}

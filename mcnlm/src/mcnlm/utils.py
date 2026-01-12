@@ -86,7 +86,7 @@ def estimate_noise(image, cutoff_ratio: float = 0.15):
     # compute standard deviation
     sigma = np.std(noise)
 
-    return sigma, noise
+    return sigma
 
 def show_results(original, noisy, denoised):
     """Compares original, noisy and denoised image"""
@@ -111,7 +111,7 @@ def show_nlm_result_zoomed(image_path, zoom, output_path):
     image = load_image(image_path)
 
     sigma = 17.0
-    noisy = add_gaussian_noise(image*255, sigma) / 255.0
+    noisy = add_gaussian_noise(image*255, sigma)
 
     x0, y0, w, h = zoom
     x1, y1 = x0 + w, y0 + h
@@ -120,7 +120,7 @@ def show_nlm_result_zoomed(image_path, zoom, output_path):
 
     # Noisy
     axs[0, 0].imshow(noisy, cmap="gray")
-    axs[0, 0].set_title(f"Noisy MSE = {mse(image, noisy):.4f}")
+    axs[0, 0].set_title(f"Noisy MSE = {mse(image.copy(), noisy):.4f}")
     axs[0, 0].axis("off")
 
     axs[1, 0].imshow(noisy[y0:y1, x0:x1], cmap="gray")
@@ -135,7 +135,8 @@ def show_nlm_result_zoomed(image_path, zoom, output_path):
         )
     
     # Denoised
-    denoised = naive_nlm.test_naive_nlm(noisy, params)
+    noisy = noisy.astype(np.float32) / 255.0
+    denoised = naive_nlm.test_naive_nlm(noisy, params) * 255.0
     axs[0, 1].imshow(denoised, cmap="gray")
     axs[0, 1].set_title(f"NLM Denoised MSE = {mse(image, denoised):.4f}")
     axs[0, 1].axis("off")

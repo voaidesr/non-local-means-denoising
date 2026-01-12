@@ -1,9 +1,10 @@
 import mcnlm.mc_nlm as mc_nlm
 import mcnlm.naive_nlm as naive_nlm
-from mcnlm.mc_convergence import mc_convergence
+from mcnlm.mc_convergence import mc_convergence, compare_noise_estimation
 
 from mcnlm.utils import show_mcnlm_result_zoomed, show_matches, show_nlm_result_zoomed
 import numpy as np
+import sys
 
 def results_mcnlm():
     show_mcnlm_result_zoomed(
@@ -47,6 +48,41 @@ def mc_convergence_results():
     mc_convergence(image_path='imgs/moon.tiff', output_path1='../docs/res/convergence1_mse.pdf', output_path2='../docs/res/convergence1_psnr.pdf')
     mc_convergence(image_path='imgs/clock.tiff', output_path1='../docs/res/convergence2_mse.pdf', output_path2='../docs/res/convergence2_psnr.pdf')
 
+def noise_comparison_results():
+    compare_noise_estimation(
+        image_path='imgs/moon.tiff',
+        output_path_visual='../docs/res/noise_comparison_visual.pdf',
+        output_path_mse='../docs/res/noise_comparison_mse.pdf',
+        output_path_psnr='../docs/res/noise_comparison_psnr.pdf'
+    )
+    
+    compare_noise_estimation(
+        image_path='imgs/clock.tiff',
+        output_path_visual='../docs/res/noise_comparison_visual2.pdf',
+        output_path_mse='../docs/res/noise_comparison_mse2.pdf',
+        output_path_psnr='../docs/res/noise_comparison_psnr2.pdf'
+    )
+
 def main():
-    # results_naive_nlm()
-    mc_convergence_results()
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        
+        if command == 'compare_noise':
+            print("Running noise estimation comparison...")
+            noise_comparison_results()
+        elif command == 'convergence':
+            print("Running MC convergence analysis...")
+            mc_convergence_results()
+        elif command == 'mcnlm':
+            print("Running MCNLM results...")
+            results_mcnlm()
+        elif command == 'nlm':
+            print("Running NLM results...")
+            results_naive_nlm()
+        else:
+            print(f"Unknown command: {command}")
+            print("Available commands: compare_noise, convergence, mcnlm, nlm")
+    else:
+        # Default behavior
+        results_naive_nlm()
+        mc_convergence_results()
