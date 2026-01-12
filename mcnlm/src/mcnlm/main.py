@@ -44,7 +44,7 @@ def results_naive_nlm():
     )
     
 def mc_convergence_results():
-    mc_convergence('imgs/clock.tiff')
+    mc_convergence(image_path='imgs/moon.tiff', output_path1='../docs/res/convergence1_mse.pdf', output_path2='../docs/res/convergence1_psnr.pdf')
 
 
 def main():
