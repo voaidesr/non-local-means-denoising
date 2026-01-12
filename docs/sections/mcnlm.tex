@@ -62,8 +62,24 @@ However,
 % todo - implement section label sec:ineq when I atually implement the inequality
 \noindent so, $Z$ is a \textit{biased estimator} of $z$. However, section \ref{sec:ineq} proves that as $n \to \infty$, the deviation $|Z - z|$ drops exponentially. This shows that, for a larger number of patches, the more efficient MCNLM gives results comparable to that of the simple NLM.
 
-\subsection{Implementation}
-
+\FloatBarrier
+\begin{algorithm}[H]
+\caption{Monte Carlo NLM Denoising}
+\label{alg:mcnlm}
+\begin{algorithmic}[1]
+\Require Noisy patch $\mathbf{y}$, reference set $\mathcal{X}$, sampling pattern $\mathbf{p}$
+\Ensure Denoised pixel $z$
+\For{$j$ in $1 \dots n$}
+    \State Generate random variable $I_j \sim \operatorname{Bernoulli}(p_j)$
+    \If{$I_j = 1$}
+        \State Compute $w_j$
+    \EndIf
+\EndFor
+\State Compute $A = \frac{1}{n} \sum_{j = 1}^{n} w_j x_j \frac{I_j}{p_j}$
+\State Compute $B = \frac{1}{n} \sum_{j = 1}^{n} w_j  \frac{I_j}{p_j}$
+\State \Return $Z = \frac{A}{B}$
+\end{algorithmic}
+\end{algorithm}
 
 
 \subsection{Results}
