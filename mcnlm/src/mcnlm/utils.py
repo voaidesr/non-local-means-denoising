@@ -178,9 +178,10 @@ def show_mcnlm_result_zoomed(image_path, probs, zoom, output_path):
     n_cols = 1 + n_pi
     fig, axs = plt.subplots(2, n_cols, figsize=(3.2*n_cols, 6))
 
+    noisy = noisy * 255.0
     # Noisy
     axs[0, 0].imshow(noisy, cmap="gray")
-    axs[0, 0].set_title(f"Noisy MSE = {mse(image, noisy):.4f}")
+    axs[0, 0].set_title(f"Noisy MSE = {mse(image.copy(), noisy):.4f}")
     axs[0, 0].axis("off")
 
     axs[1, 0].imshow(noisy[y0:y1, x0:x1], cmap="gray")
@@ -195,7 +196,8 @@ def show_mcnlm_result_zoomed(image_path, probs, zoom, output_path):
                              linewidth=1,
                              alpha = 0.5)
         axs[0, col].add_patch(rect)
-        
+    
+
     for i, pi in enumerate(probs):
         col = 1 + i
         params = mc_nlm.MCNLMParams(
@@ -207,11 +209,13 @@ def show_mcnlm_result_zoomed(image_path, probs, zoom, output_path):
             sampling_prob=pi
         )
 
-        denoised = mc_nlm.test_mcnlm(noisy, params)
+        noisy = noisy / 255.0
+        denoised = mc_nlm.test_mcnlm(noisy, params) * 255.0
+        noisy = noisy * 255.0
 
         # Full
         axs[0, col].imshow(denoised, cmap="gray")
-        axs[0, col].set_title(f"MCNLM Denoised MSE = {mse(image, denoised):.4f}\np = {pi}")
+        axs[0, col].set_title(f"MCNLM Denoised MSE = {mse(image.copy(), denoised):.4f}\np = {pi}")
         axs[0, col].axis("off")
 
         # Zoom
