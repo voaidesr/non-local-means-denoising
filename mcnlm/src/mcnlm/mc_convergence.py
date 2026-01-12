@@ -72,8 +72,9 @@ def mc_convergence(image_path, output_path1, output_path2):
     plt.xticks(xis)
     plt.grid(True)
     plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_path1, bbox_inches='tight', dpi=300)
     plt.show()
-    plt.savefig(output_path1)
 
     # MC-NLM PSNR
     plt.plot(xis, mc_clean_psnr, 'o-', label='MC-NLM vs clean')
@@ -85,5 +86,6 @@ def mc_convergence(image_path, output_path1, output_path2):
     plt.xticks(xis)
     plt.grid(True)
     plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_path2, bbox_inches='tight', dpi=300)
     plt.show()
-    plt.savefig(output_path2)
