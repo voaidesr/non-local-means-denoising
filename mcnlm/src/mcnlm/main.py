@@ -43,6 +43,10 @@ def results_naive_nlm():
         output_path="../docs/res/nlm_denoise2.pdf",
     )
     
+def mc_convergence_results():
+    mc_convergence('imgs/clock.tiff')
+
 
 def main():
-    results_naive_nlm()
+    # results_naive_nlm()
+    mc_convergence_results()
