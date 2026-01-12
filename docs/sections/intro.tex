@@ -60,7 +60,11 @@ w_i = e^{
 
 Where $h_r$ is a scalar parameter that controls the decay of the distribution: small values create a fast decay and ensure a focus on stricter similarity between patches, whereas larger values allow different patches to have a greater weight. And $|| \mathbf{\cdot} ||$ is the Euclidian norm.
 
-The downside of NLM is it high computational complexity. The most expensive step of this algorithms is computing the weights $\mathbf{w}_i$, which leads to $\mathcal{O}(mnd)$ operations, where $m$ is the number of pixels to be denoised, $n$ the number of patches and $d$ the dimensions of the patch.
+The downside of NLM is it high computational complexity. The most expensive step of this algorithms is computing the weights $\mathbf{w}_i$, which leads to $\mathcal{O}(mnd)$ operations, where $m$ is the number of pixels to be denoised, $n$ the number of patches and $d$ the dimensions of the patch. In reality, a study has shown that it's enough to only use a localized window of dimension $D$ around the pixel to be denoised~\cite{postec2013non}, which reduces the complexity to $\mathcal{O}(mD^2d)$. Keep in mind that $m$ and $d$ are also quadratic in nature of the image and patch sizes.
+
+A fun, but not-so-trivial way of improving the computational complexity is to use summed-area tables and the Fast Fourier Transform, which achieves a theoretical complexity of $\mathcal{O}(mD^2\sqrt{d})$. An implementation of this by Jacques Froment~\cite{ipol.2014.120}, called \emph{Parameter-Free Fast Pixelwise Non-Local Means Denoising}, claims to speed up the process by a factor of $6$ to $49$.
+
+In reality, both of these implementations, as well as the one below, are easily parallelizable, and can be sped up even further using GPU computing.
 
 \subsection{Monte Carlo Non-Local Means (MCNLM)}
 
