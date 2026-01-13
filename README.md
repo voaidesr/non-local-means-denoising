@@ -1,6 +1,3 @@
-# MCNLM
-Monte Carlo methods for image denoising. 
-
 # Monte Carlo Non-Local Means (MCNLM) Optimization
 
 This repository implements an optimized **Non-Local Means (NLM)** denoising algorithm using **Monte Carlo sampling**. By selecting a random subset of patches rather than the entire image, this approach significantly reduces computational overhead while maintaining high visual fidelity.
