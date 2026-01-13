@@ -27,14 +27,11 @@ The MCNLM algorithm achieves quality comparable to full NLM but at a fraction of
 
 | Metric | Noisy Image | MCNLM ($p=0.3$) | MCNLM ($p=0.8$) | Naive NLM |
 | :--- | :--- | :--- | :--- | :--- |
-| **MSE** | ~275.4 [cite: 116] | 97.06 [cite: 117] | 58.16 [cite: 117] | 69.14 [cite: 162] |
-| **PSNR** | - | ~28.8 dB [cite: 167] | ~29.5 dB [cite: 164] | 29.73 [cite: 173] |
+| **MSE** | ~275.4 | 97.06 | 58.16 | 69.14 |
 
 * **Visual Results**: Effectively removes additive white Gaussian noise while preserving textures.
 * **Diminishing Returns**: MSE drops rapidly with initial sampling.
 * **Reliability**: High reliability is maintained even with only 5% of samples.
-
-*Date: January 13, 2026* [cite: 4]
 
 ## Resources
 - [Original NLM paper](https://www.ipol.im/pub/art/2011/bcm_nlm/article.pdf)
