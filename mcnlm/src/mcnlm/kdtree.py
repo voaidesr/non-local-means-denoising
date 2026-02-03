@@ -4,6 +4,7 @@ import time
 from scipy.spatial import KDTree
 from mcnlm.utils import save_image
 from numba import njit, prange
+from sklearn.decomposition import PCA
 
 
 def extract_patches(image: np.ndarray, patch_size: int) -> tuple[np.ndarray, np.ndarray]:
@@ -51,7 +52,7 @@ def aggregate_denoised_patches(denoised: np.ndarray, counts: np.ndarray,
                 counts[i + di, j + dj] += 1
 
 
-def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 100):
+def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 10):
     time_extract = time.time()
     patches, coords = extract_patches(image, patch_size)
     time_extract_end = time.time()
@@ -62,14 +63,18 @@ def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 100)
     assert patch_dim == patch_size * patch_size, "Patch dimension mismatch"
     print(f"Extracted {n_patches} patches of size {patch_size}x{patch_size} (dim={patch_dim})")
 
+    pca = PCA(n_components=10)
+    patches_reduced = pca.fit_transform(patches)
+    print(f"PCA reduced patch dimension from {patch_dim} to {patches_reduced.shape[1]}")
+
     tree_build_start = time.time()
-    kdtree = KDTree(patches)
+    kdtree = KDTree(patches_reduced)
     tree_build_end = time.time()
     print(f"K-D tree build took {tree_build_end - tree_build_start:.2f} seconds")
 
     # Batch query all patches at once
     query_start = time.time()
-    _, indices = kdtree.query(patches, k=k_neighbors)
+    _, indices = kdtree.query(patches_reduced, k=k_neighbors)
     query_end = time.time()
     print(f"Batch K-D tree query took {query_end - query_start:.2f} seconds")
 
@@ -100,6 +105,14 @@ def kdtree_nlm(image_path: str, output_path: str) -> None:
     pad = patch_size // 2
     denoised = denoised[pad:-pad, pad:-pad]
 
+    noisy *= 255.0
+    denoised *= 255.0
+
+    mse_noisy = mse(image.copy(), noisy)
+    psnr_noisy = psnr(image.copy(), noisy)
+    mse_denoised = mse(image.copy(), denoised)
+    psnr_denoised = psnr(image.copy(), denoised)
+
     import matplotlib.pyplot as plt
     plt.figure(figsize=(8, 8))
     plt.subplot(131)
@@ -108,11 +121,11 @@ def kdtree_nlm(image_path: str, output_path: str) -> None:
     plt.axis('off')
     plt.subplot(132)
     plt.imshow(noisy, cmap='gray')
-    plt.title('Noisy Image')
+    plt.title('Noisy Image (MSE={:.4f}, PSNR={:.2f} dB)'.format(mse_noisy, psnr_noisy))
     plt.axis('off')
     plt.subplot(133)
     plt.imshow(denoised, cmap='gray')
-    plt.title('Denoised Image using K-D Tree NLM')
+    plt.title('Denoised Image (MSE={:.4f}, PSNR={:.2f} dB)'.format(mse_denoised, psnr_denoised))
     plt.axis('off')
     plt.show()
 

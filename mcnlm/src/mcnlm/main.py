@@ -68,10 +68,10 @@ def results_kdtree_nlm():
         output_path='results/kdtree/kdtree_comparison.pdf',
     )
 
-    kdtree_nlm(
-        image_path='imgs/city.tiff',
-        output_path='results/kdtree/kdtree_comparison.pdf',
-    )
+    # kdtree_nlm(
+    #     image_path='imgs/city.tiff',
+    #     output_path='results/kdtree/kdtree_comparison.pdf',
+    # )
 
 def main():
     if len(sys.argv) > 1:
