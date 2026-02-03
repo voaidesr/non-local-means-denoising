@@ -1,8 +1,7 @@
-import mcnlm.mc_nlm as mc_nlm
-import mcnlm.naive_nlm as naive_nlm
 from mcnlm.mc_convergence import mc_convergence, compare_noise_estimation
 
 from mcnlm.utils import show_mcnlm_result_zoomed, show_matches, show_nlm_result_zoomed
+from mcnlm.kdtree import kdtree_nlm
 import numpy as np
 import sys
 
@@ -63,6 +62,17 @@ def noise_comparison_results():
         output_path_psnr='../docs/res/noise_comparison_psnr2.pdf'
     )
 
+def results_kdtree_nlm():
+    kdtree_nlm(
+        image_path='imgs/clock.tiff',
+        output_path='results/kdtree/kdtree_comparison.pdf',
+    )
+
+    kdtree_nlm(
+        image_path='imgs/city.tiff',
+        output_path='results/kdtree/kdtree_comparison.pdf',
+    )
+
 def main():
     if len(sys.argv) > 1:
         command = sys.argv[1]
@@ -79,6 +89,9 @@ def main():
         elif command == 'nlm':
             print("Running NLM results...")
             results_naive_nlm()
+        elif command == 'kdtree':
+            print("Running K-d tree results...")
+            results_kdtree_nlm()
         else:
             print(f"Unknown command: {command}")
             print("Available commands: compare_noise, convergence, mcnlm, nlm")
