@@ -21,19 +21,21 @@ def window_size_comparison(
     h_factor=0.4,
     patch_radius=2,
     resize_to=None,
+    seed: int | None = None,
+    deterministic: bool = False,
 ):
     image = load_image(str(image_path))
     if resize_to is not None:
         image = cv2.resize(image, resize_to, interpolation=cv2.INTER_AREA)
+    if seed is not None:
+        np.random.seed(seed)
     noisy = add_gaussian_noise(image * 255.0, sigma=sigma).astype(np.float32) / 255.0
-
-    np.random.seed(0)
 
     nlm_mse = []
     mc_mse = []
     window_sizes = []
 
-    for r in search_radii:
+    for idx, r in enumerate(search_radii):
         r = int(r)
         nlm_params = naive_nlm.NLMParams(
             sigma=sigma / 255.0,
@@ -52,7 +54,10 @@ def window_size_comparison(
             spatial_sigma=1e10,
             sampling_prob=sampling_prob,
         )
-        mc = mc_nlm.test_mcnlm(noisy, mc_params)
+        mc_seed = None
+        if seed is not None:
+            mc_seed = seed + 3000 + idx
+        mc = mc_nlm.test_mcnlm(noisy, mc_params, deterministic=deterministic, seed=mc_seed)
         mc_mse.append(mse(mc, image))
 
         window_sizes.append(2 * r + 1)
@@ -81,6 +86,8 @@ def main():
         search_radii=range(8, 51, 3),
         sampling_prob=0.5,
         resize_to=(64, 64),
+        seed=0,
+        deterministic=True,
     )
 
 

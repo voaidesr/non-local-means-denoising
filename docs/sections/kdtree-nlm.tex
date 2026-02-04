@@ -1,0 +1,70 @@
+\section{KD-Tree Accelerated Non-Local Means}
+
+\label{sec:kdtree-nlm}
+
+This section describes a possible improvement of the basic Non-Local Means algorithm that would improve its theoretical time complexity by using a KD-Tree data structure to speed up the finding of similar patches, at the cost of slight accuracy loss. While the theoretical time complexity of this approach is better, the naive algorithm is laughably simple to parallelize, meanwhile this approach does have some bottlenecks in the query phase that are harder to do so; as such, the actual runtime improvement may be less than expected. However, it is still an interesting approach to explore and implement, and can be used as a middle ground between the naive NLM and more heuristic approaches like Monte Carlo NLM.
+
+More complex approaches that are based on this idea have been presented by Adams et al.\ in the SIGGRAPH 2009 paper~\cite{adams2009gaussian}, that explores the idea of a \emph{Gaussian KD-Tree}, and by Brox et al.~\cite{brox2008efficient} who introduced the notion of \emph{Cluster Trees}. The approach proposed by Adams et al., is a more advanced data structure that combines KD-Trees with Gaussian Mixture Models to further speed up the search for similar patches. This approach is more difficult to implement, but can provide even better performance, since the original authors implemented this using a GPU with CUDA support.
+
+\subsection{Algorithm Description}
+
+Unlike the Monte Carlo NLM algorithm, which randomly samples patches from the search window, this approach builds a KD-Tree from all the patches in the search window, and then queries it for the $K$ nearest neighbors of the current patch. This way, we can find the most similar patches more efficiently than by brute-force searching through all patches in the search window. More specifically, for each pixel $p$ in the image, we extract its patch $B(p, f)$ and consider a point in $\mathbb{R}^{(2f+1)^2}$ corresponding to the flattened patch. This $(2f+1)^2$-dimensional point is then inserted into the KD-Tree. After building the KD-Tree for all patches in the search window, we can query it for the $K$ nearest neighbors of the patch $B(p, f)$, and use these patches to compute the weights and denoise the pixel $p$. The weight computation and denoising steps remain the same as in the original NLM algorithm, but we only consider the $K$ nearest neighbors instead of all patches in the search window. Below is a high-level pseudocode of the proposed idea.
+
+For RGB images, we would need to also consider the color channels, resulting in points in $\mathbb{R}^{3(2f+1)^2}$. However, as before, we will focus on grayscale images for simplicity.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1\linewidth]{res/knn_vs_mc_spatial.pdf}
+    \caption{MCLNM vs KD-Tree NLM patch selection comparison}
+    \label{fig:kdtree-nlm-patch-selection}
+\end{figure}
+
+\begin{algorithm}[H]
+\caption{KD-Tree Accelerated Non-Local Means Denoising}
+\label{alg:kdtree-nlm}
+\begin{algorithmic}[1]
+\Require Noisy image $Y$, patch half-size $f$, filtering parameter $h$, number of neighbors $K$
+\Ensure Denoised image $Z$
+\State $\mathcal{P}$ $\leftarrow$ Extract all patches $B(p, f)$ from image $Y$ and flatten them into vectors in $\mathbb{R}^{(2f+1)^2}$
+\State KD $\leftarrow$ BuildKDTree($\mathcal{P}$)
+\For{each pixel $p$ in image $Y$}
+    \State $B_p$ $\leftarrow$ Extract and flatten patch $B(p, f)$
+    \State $\mathcal{N}_p$ $\leftarrow$ KD.Query($B_p$, $K$)
+    \State $Z(p) \leftarrow 0$, $W \leftarrow 0$
+    \For{each patch $B(q, f)$ in $\mathcal{N}_p$}
+        \State $d \leftarrow$ ComputeDistance($B_p$, $B(q, f)$)
+        \State $w \leftarrow \exp\left(-\frac{d^2}{h^2}\right)$
+        \State $Z(p) \leftarrow Z(p) + w \cdot Y(q)$
+        \State $W \leftarrow W + w$
+    \EndFor
+    \State $Z(p) \leftarrow Z(p) / W$
+\EndFor
+\State \Return $Z$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Experimental Results}
+
+We compared the two approaches (Monte Carlo NLM and KD-Tree NLM) with the \texttt{clock} image from the \texttt{SIPI Image Database}, corrupted with Gaussian noise with $\sigma = 17$. We can see that both approaches have very similar performance in terms of PSNR and MSE, even though they look pretty different. The Monte Carlo approach works very well with large uniform spaces, but struggles near rough edges (such as under the clock, or next to the numbers), while the KD-Tree approach can outperform it in these areas, but looks more noisy in large uniform areas. This is to be expected, since the Monte Carlo approach is more likely to be able to find good patches in large similar areas, and struggle in very dense, high-frequency ones. The KD-Tree approach, on the other hand, is not restricted by a fixed window search area, and can find good patches even in high-frequency areas, as long as they are present somewhere in the image. However, the noise in the background can be attributed to the fact that it's behaving too good --- since there are many patches similar to the noisy one, it's likely to pick the ones with similar noise patterns, resulting in less effective denoising.
+
+An idea for improvement would be to only use the KD-Tree approach in high-frequency areas, and use the Monte Carlo approach in low-frequency ones, to get the best of both worlds. Or, as another idea, we could build the KD-Tree locally for each search window and have a hybrid approach that uses both methods. However, due to time constraints, we were not able to explore these ideas further.
+
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{1\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{res/methods_comparison_clock.pdf}
+        \label{fig:clock_zoom}
+    \end{subfigure}
+    \vfill
+    \begin{subfigure}[b]{1\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{res/methods_comparison_clock_2.pdf}
+        \label{fig:portrait_zoom}
+    \end{subfigure}
+
+    \caption{Comparison between KD-Tree NLM and MC-NLM}
+    \label{fig:comparison}
+\end{figure}
+
