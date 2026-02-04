@@ -64,7 +64,7 @@ The downside of NLM is it high computational complexity. The most expensive step
 
 A fun, but not-so-trivial way of improving the computational complexity is to use summed-area tables and the Fast Fourier Transform, which achieves a theoretical complexity of $\mathcal{O}(mD^2\sqrt{d})$. An implementation of this by Jacques Froment~\cite{ipol.2014.120}, called \emph{Parameter-Free Fast Pixelwise Non-Local Means Denoising}, claims to speed up the process by a factor of $6$ to $49$.
 
-In reality, both of these implementations, as well as the one below, are easily parallelizable, and can be sped up even further using GPU computing.
+In reality, both of these implementations, as well as the one below, are easily parallelizable, and can be sped up even further using GPU computing. In~\ref{sec:kdtree-nlm}, we will explore a different approach that uses KD-Trees to accelerate the search for similar patches, at the cost of a slight decrease in the quality of the denoised image.
 
 \subsection{Monte Carlo Non-Local Means (MCNLM)}
 
