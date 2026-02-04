@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+from scipy.spatial import KDTree
 
 from mcnlm.utils import load_image, add_gaussian_noise
 from mcnlm.kdtree import (
@@ -9,7 +10,7 @@ from mcnlm.kdtree import (
     center_to_patch_index,
     local_window_indices,
     patch_distances,
-    kdtree_knn,
+    recompute_distances,
 )
 
 
@@ -21,7 +22,6 @@ def analyze_patch_selection(
     search_radius: int = 10,
     k_neighbors: int = 100,
     sigma: float = 17.0,
-    pca_components: int | None = None,
     seed: int | None = None,
     show: bool = False,
 ):
@@ -43,7 +43,8 @@ def analyze_patch_selection(
         test_indices.append(test_idx)
         centers.append((center_i, center_j))
 
-    knn_indices_all, _ = kdtree_knn(patches, k_neighbors=k_neighbors, n_components=pca_components)
+    kdtree = KDTree(patches)
+    _, knn_indices_all = kdtree.query(patches, k=k_neighbors)
 
     _, axes = plt.subplots(1, len(test_pixels_offsets), figsize=(20, 8))
     for idx, (center_i, center_j) in enumerate(centers):
@@ -82,7 +83,6 @@ def analyze_kdtree_spatial(
     search_radius: int = 10,
     k_neighbors: int = 100,
     sigma: float = 17.0,
-    pca_components: int | None = None,
     seed: int | None = None,
     show: bool = False,
     sample_size: int = 5000,
@@ -103,11 +103,10 @@ def analyze_kdtree_spatial(
     center_j = width // 2 + test_pixel_offset[1]
     test_idx = center_to_patch_index(center_i, center_j, height, width, patch_size)
 
-    knn_indices_all, knn_distances_sq_all = kdtree_knn(
-        patches,
-        k_neighbors=k_neighbors,
-        n_components=pca_components,
-    )
+    patch_dim = patches.shape[1]
+    kdtree = KDTree(patches)
+    _, knn_indices_all = kdtree.query(patches, k=k_neighbors)
+    knn_distances_sq_all = recompute_distances(patches, knn_indices_all, patch_dim)
     knn_indices = knn_indices_all[test_idx]
     knn_distances_sq = knn_distances_sq_all[test_idx]
     knn_coords = coords_center[knn_indices]

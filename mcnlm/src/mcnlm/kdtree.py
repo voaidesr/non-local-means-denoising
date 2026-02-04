@@ -4,7 +4,6 @@ import time
 from scipy.spatial import KDTree
 from mcnlm.utils import save_image
 from numba import njit, prange
-from sklearn.decomposition import PCA
 
 
 def extract_patches(image: np.ndarray, patch_size: int) -> tuple[np.ndarray, np.ndarray]:
@@ -115,22 +114,6 @@ def recompute_distances(patches: np.ndarray, indices: np.ndarray, patch_dim: int
     return distances
 
 
-def kdtree_knn(
-    patches: np.ndarray,
-    k_neighbors: int = 100,
-    n_components: int | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
-    patch_dim = patches.shape[1]
-    if n_components is None:
-        n_components = min(10, patch_dim)
-    pca = PCA(n_components=n_components)
-    patches_reduced = pca.fit_transform(patches)
-    kdtree = KDTree(patches_reduced)
-    _, indices = kdtree.query(patches_reduced, k=k_neighbors)
-    distances = recompute_distances(patches, indices, patch_dim)
-    return indices, distances
-
-
 def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 1000, 
                       sigma: float = 0.0, h_factor: float = 0.55):
     time_extract = time.time()
@@ -143,24 +126,13 @@ def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 1000
     assert patch_dim == patch_size * patch_size, "Patch dimension mismatch"
     print(f"Extracted {n_patches} patches of size {patch_size}x{patch_size} (dim={patch_dim})")
 
-    patches_reduced = patches
-
-    # Uncomment below to enable PCA dimensionality reduction
-    # pca_start = time.time()
-    # n_components = patch_dim
-    # n_components = min(10, patch_dim)
-    # pca = PCA(n_components=n_components)
-    # patches_reduced = pca.fit_transform(patches)
-    # pca_end = time.time()
-    # print(f"PCA reduction ({patch_dim}D -> {n_components}D) took {pca_end - pca_start:.2f} seconds")
-
     tree_build_start = time.time()
-    kdtree = KDTree(patches_reduced)
+    kdtree = KDTree(patches)
     tree_build_end = time.time()
     print(f"KDTree build took {tree_build_end - tree_build_start:.2f} seconds")
 
     query_start = time.time()
-    _, indices = kdtree.query(patches_reduced, k=k_neighbors)
+    _, indices = kdtree.query(patches, k=k_neighbors)
     query_end = time.time()
     print(f"Batch KDTree query took {query_end - query_start:.2f} seconds")
     
