@@ -230,6 +230,66 @@ def _plot_hashednlm_zoomed(ctx: PlotContext) -> None:
     )
 
 
+def _plot_knn_vs_mc_spatial(ctx: PlotContext) -> None:
+    from mcnlm.analysis import analyze_patch_selection
+
+    analyze_patch_selection(
+        image_path=str(repo_root() / "mcnlm" / "imgs" / "clock.tiff"),
+        output_path=str(ctx.out_dir / "knn_vs_mc_spatial.pdf"),
+        test_pixels_offsets=[(-30, -30), (60, -40), (0, 40)],
+        patch_size=5,
+        search_radius=10,
+        k_neighbors=100,
+        sigma=17.0,
+        seed=ctx.seed,
+        show=ctx.show,
+    )
+
+
+def _plot_methods_comparison_clock(ctx: PlotContext) -> None:
+    from mcnlm.comparison import compare_all_methods
+
+    compare_all_methods(
+        image_path=str(repo_root() / "mcnlm" / "imgs" / "clock.tiff"),
+        output_path=str(ctx.out_dir / "methods_comparison_clock.pdf"),
+        zoom=(130, 120, 64, 64),
+        sampling_prob=0.5,
+        seed=ctx.seed,
+        deterministic=ctx.deterministic,
+        show=ctx.show,
+    )
+
+
+def _plot_methods_comparison_clock_2(ctx: PlotContext) -> None:
+    from mcnlm.comparison import compare_all_methods
+
+    compare_all_methods(
+        image_path=str(repo_root() / "mcnlm" / "imgs" / "clock.tiff"),
+        output_path=str(ctx.out_dir / "methods_comparison_clock_2.pdf"),
+        zoom=(50, 150, 64, 64),
+        sampling_prob=0.5,
+        seed=ctx.seed,
+        deterministic=ctx.deterministic,
+        show=ctx.show,
+    )
+
+
+def _plot_knn_spatial_analysis(ctx: PlotContext) -> None:
+    from mcnlm.analysis import analyze_kdtree_spatial
+
+    analyze_kdtree_spatial(
+        image_path=str(repo_root() / "mcnlm" / "imgs" / "clock.tiff"),
+        output_path=str(ctx.out_dir / "knn_spatial_analysis.pdf"),
+        test_pixel_offset=(0, 0),
+        patch_size=5,
+        search_radius=10,
+        k_neighbors=100,
+        sigma=17.0,
+        seed=ctx.seed,
+        show=ctx.show,
+    )
+
+
 PLOT_SPECS: tuple[PlotSpec, ...] = (
     PlotSpec(
         name="mcnlm1",
@@ -335,6 +395,34 @@ PLOT_SPECS: tuple[PlotSpec, ...] = (
         description="Hashed NLM comparison with zoomed region",
         default_seed=702,
         build=_plot_hashednlm_zoomed,
+    ),
+    PlotSpec(
+        name="knn_vs_mc_spatial",
+        outputs=("knn_vs_mc_spatial.pdf",),
+        description="k-NN locations vs local search window",
+        default_seed=801,
+        build=_plot_knn_vs_mc_spatial,
+    ),
+    PlotSpec(
+        name="methods_comparison_clock",
+        outputs=("methods_comparison_clock.pdf",),
+        description="Compare Noisy vs MCNLM vs KD-Tree (clock)",
+        default_seed=802,
+        build=_plot_methods_comparison_clock,
+    ),
+    PlotSpec(
+        name="methods_comparison_clock_2",
+        outputs=("methods_comparison_clock_2.pdf",),
+        description="Compare Noisy vs MCNLM vs KD-Tree (clock) zoom variant",
+        default_seed=803,
+        build=_plot_methods_comparison_clock_2,
+    ),
+    PlotSpec(
+        name="knn_spatial_analysis",
+        outputs=("knn_spatial_analysis.pdf",),
+        description="Detailed k-NN spatial analysis plot",
+        default_seed=804,
+        build=_plot_knn_spatial_analysis,
     ),
 )
 

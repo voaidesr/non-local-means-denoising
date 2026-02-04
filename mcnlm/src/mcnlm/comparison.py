@@ -6,10 +6,20 @@ import mcnlm.mc_nlm as mc_nlm
 from mcnlm.kdtree import run_kdtree_naive
 
 
-def compare_all_methods(image_path: str, output_path: str, zoom: tuple = None, sampling_prob: float = 0.5):
+def compare_all_methods(
+    image_path: str,
+    output_path: str,
+    zoom: tuple | None = None,
+    sampling_prob: float = 0.5,
+    seed: int | None = None,
+    deterministic: bool = False,
+    show: bool = False,
+):
     # Load and prepare image
     image = load_image(image_path)
     sigma = 17.0
+    if seed is not None:
+        np.random.seed(seed)
     noisy = add_gaussian_noise(image * 255, sigma) / 255.0
     image /= 255.0
 
@@ -23,7 +33,10 @@ def compare_all_methods(image_path: str, output_path: str, zoom: tuple = None, s
         spatial_sigma=1e10,
         sampling_prob=sampling_prob
     )
-    mcnlm_denoised = mc_nlm.test_mcnlm(noisy, mc_params)
+    mc_seed = None
+    if seed is not None:
+        mc_seed = seed + 100
+    mcnlm_denoised = mc_nlm.test_mcnlm(noisy, mc_params, deterministic=deterministic, seed=mc_seed)
     
     # Compute KD-Tree denoising
     print("Computing KD-Tree denoising...")
@@ -121,7 +134,10 @@ def compare_all_methods(image_path: str, output_path: str, zoom: tuple = None, s
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(str(output_path), bbox_inches='tight', dpi=300)
-    plt.close()
+    if show:
+        plt.show()
+    else:
+        plt.close()
     
     print(f"Comparison saved to {output_path}")
     print(f"PSNR - Noisy: {psnr_noisy:.2f} dB, MCNLM: {psnr_mcnlm:.2f} dB, KD-Tree: {psnr_kdtree:.2f} dB")
