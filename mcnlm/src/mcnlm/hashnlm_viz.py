@@ -62,14 +62,14 @@ def standard_comparison_hashed_nlm(
     plt.subplot(132)
     plt.imshow(noisy_image, cmap="gray")
     plt.title(
-        f"Noisy MSE = {mse(original_image.copy()*255.0, noisy_image.copy()*255.0):.2f} | "
-        f"PSNR = {psnr(original_image, noisy_image):.4f}"
+        f"Noisy MSE = {mse(original_image.copy()*255.0, noisy_image.copy()*255.0):.2f} \n "
+        f"PSNR = {psnr(original_image, noisy_image):.2f}"
     )
     plt.subplot(133)
     plt.imshow(denoised_image, cmap="gray")
     plt.title(
-        f"Denoised MSE = {mse(original_image.copy()*255.0, denoised_image.copy()*255.0):.2f} | "
-        f"PSNR = {psnr(original_image, denoised_image):.4f}"
+        f"Denoised MSE = {mse(original_image.copy()*255.0, denoised_image.copy()*255.0):.2f} \n "
+        f"PSNR = {psnr(original_image, denoised_image):.2f}"
     )
 
     plt.suptitle(
