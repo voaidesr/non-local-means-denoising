@@ -8,6 +8,37 @@ More complex approaches that are based on this idea have been presented by Adams
 
 \subsection{Algorithm Description}
 
-Unlike the Monte Carlo NLM algorithm, which randomly samples patches from the search window, this approach builds a KD-Tree from all the patches in the search window, and then queries it for the $K$ nearest neighbors of the current patch. This way, we can find the most similar patches more efficiently than by brute-force searching through all patches in the search window. More specifically, for each pixel $p$ in the image, we extract its patch $B(p, f)$ and consider a point in $\mathbb{R}^{(2f+1)^2}$ corresponding to the flattened patch. This $(2f+1)^2$-dimensional point is then inserted into the KD-Tree. After building the KD-Tree for all patches in the search window, we can query it for the $K$ nearest neighbors of the patch $B(p, f)$, and use these patches to compute the weights and denoise the pixel $p$. The weight computation and denoising steps remain the same as in the original NLM algorithm, but we only consider the $K$ nearest neighbors instead of all patches in the search window.
+Unlike the Monte Carlo NLM algorithm, which randomly samples patches from the search window, this approach builds a KD-Tree from all the patches in the search window, and then queries it for the $K$ nearest neighbors of the current patch. This way, we can find the most similar patches more efficiently than by brute-force searching through all patches in the search window. More specifically, for each pixel $p$ in the image, we extract its patch $B(p, f)$ and consider a point in $\mathbb{R}^{(2f+1)^2}$ corresponding to the flattened patch. This $(2f+1)^2$-dimensional point is then inserted into the KD-Tree. After building the KD-Tree for all patches in the search window, we can query it for the $K$ nearest neighbors of the patch $B(p, f)$, and use these patches to compute the weights and denoise the pixel $p$. The weight computation and denoising steps remain the same as in the original NLM algorithm, but we only consider the $K$ nearest neighbors instead of all patches in the search window. Below is a high-level pseudocode of the proposed idea.
 
 For RGB images, we would need to also consider the color channels, resulting in points in $\mathbb{R}^{3(2f+1)^2}$. However, as before, we will focus on grayscale images for simplicity.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1\linewidth]{res/knn_vs_mc_spatial.pdf}
+    \caption{MCLNM vs KD-Tree NLM patch selection comparison}
+    \label{fig:kdtree-nlm-patch-selection}
+\end{figure}
+
+\begin{algorithm}[H]
+\caption{KD-Tree Accelerated Non-Local Means Denoising}
+\label{alg:kdtree-nlm}
+\begin{algorithmic}[1]
+\Require Noisy image $Y$, patch half-size $f$, filtering parameter $h$, number of neighbors $K$
+\Ensure Denoised image $Z$
+\State $\mathcal{P}$ $\leftarrow$ Extract all patches $B(p, f)$ from image $Y$ and flatten them into vectors in $\mathbb{R}^{(2f+1)^2}$
+\State KD $\leftarrow$ BuildKDTree($\mathcal{P}$)
+\For{each pixel $p$ in image $Y$}
+    \State $B_p$ $\leftarrow$ Extract and flatten patch $B(p, f)$
+    \State $\mathcal{N}_p$ $\leftarrow$ KD.Query($B_p$, $K$)
+    \State $Z(p) \leftarrow 0$, $W \leftarrow 0$
+    \For{each patch $B(q, f)$ in $\mathcal{N}_p$}
+        \State $d \leftarrow$ ComputeDistance($B_p$, $B(q, f)$)
+        \State $w \leftarrow \exp\left(-\frac{d^2}{h^2}\right)$
+        \State $Z(p) \leftarrow Z(p) + w \cdot Y(q)$
+        \State $W \leftarrow W + w$
+    \EndFor
+    \State $Z(p) \leftarrow Z(p) / W$
+\EndFor
+\State \Return $Z$
+\end{algorithmic}
+\end{algorithm}
