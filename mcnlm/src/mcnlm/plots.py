@@ -239,7 +239,7 @@ def _plot_hashednlm8(ctx: PlotContext) -> None:
         num_features=8
     )
 
-def _plot_hashednlm_zoomed(ctx: PlotContext) -> None:
+def _plot_hashednlm_zoomed4(ctx: PlotContext) -> None:
     from mcnlm.hashnlm_viz import standard_comparison_hashed_nlm_zoomed
 
     standard_comparison_hashed_nlm_zoomed(
@@ -251,6 +251,18 @@ def _plot_hashednlm_zoomed(ctx: PlotContext) -> None:
         show=ctx.show,
     )
 
+def _plot_hashednlm_zoomed6(ctx: PlotContext) -> None:
+    from mcnlm.hashnlm_viz import standard_comparison_hashed_nlm_zoomed
+
+    standard_comparison_hashed_nlm_zoomed(
+        str(repo_root() / "mcnlm" / "imgs" / "land.tiff"),
+        str(ctx.out_dir / "hashednlm_zoomed.pdf"),
+        zoom_size=64,
+        zoom_center=None,
+        seed=ctx.seed,
+        show=ctx.show,
+        num_features=6
+    )
 
 def _plot_knn_vs_mc_spatial(ctx: PlotContext) -> None:
     from mcnlm.analysis import analyze_patch_selection
@@ -426,11 +438,18 @@ PLOT_SPECS: tuple[PlotSpec, ...] = (
         build=_plot_hashednlm8,
     ),
     PlotSpec(
-        name="hashednlm_zoomed",
-        outputs=("hashednlm_zoomed.pdf",),
+        name="hashednlm_zoomed4",
+        outputs=("hashednlm_zoomed4.pdf",),
         description="Hashed NLM comparison with zoomed region",
         default_seed=702,
-        build=_plot_hashednlm_zoomed,
+        build=_plot_hashednlm_zoomed4,
+    ),
+    PlotSpec(
+        name="hashednlm_zoomed6",
+        outputs=("hashednlm_zoomed6.pdf",),
+        description="Hashed NLM comparison with zoomed region",
+        default_seed=702,
+        build=_plot_hashednlm_zoomed6,
     ),
     PlotSpec(
         name="knn_vs_mc_spatial",
