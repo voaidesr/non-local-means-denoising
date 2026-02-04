@@ -206,16 +206,38 @@ def _plot_window_size_mse(ctx: PlotContext) -> None:
     )
 
 
-def _plot_hashednlm(ctx: PlotContext) -> None:
+def _plot_hashednlm4(ctx: PlotContext) -> None:
+    from mcnlm.hashnlm_viz import standard_comparison_hashed_nlm
+
+    standard_comparison_hashed_nlm(
+        str(repo_root() / "mcnlm" / "imgs" / "clock.tiff"),
+        str(ctx.out_dir / "hashednlm4.pdf"),
+        seed=ctx.seed,
+        show=ctx.show,
+        num_features=4
+    )
+
+def _plot_hashednlm6(ctx: PlotContext) -> None:
+    from mcnlm.hashnlm_viz import standard_comparison_hashed_nlm
+
+    standard_comparison_hashed_nlm(
+        str(repo_root() / "mcnlm" / "imgs" / "clock.tiff"),
+        str(ctx.out_dir / "hashednlm6.pdf"),
+        seed=ctx.seed,
+        show=ctx.show,
+        num_features=6
+    )
+
+def _plot_hashednlm8(ctx: PlotContext) -> None:
     from mcnlm.hashnlm_viz import standard_comparison_hashed_nlm
 
     standard_comparison_hashed_nlm(
         str(repo_root() / "mcnlm" / "imgs" / "land.tiff"),
-        str(ctx.out_dir / "hashednlm.pdf"),
+        str(ctx.out_dir / "hashednlm8.pdf"),
         seed=ctx.seed,
         show=ctx.show,
+        num_features=8
     )
-
 
 def _plot_hashednlm_zoomed(ctx: PlotContext) -> None:
     from mcnlm.hashnlm_viz import standard_comparison_hashed_nlm_zoomed
@@ -383,11 +405,25 @@ PLOT_SPECS: tuple[PlotSpec, ...] = (
         build=_plot_window_size_mse,
     ),
     PlotSpec(
-        name="hashednlm",
+        name="hashednlm4",
         outputs=("hashednlm.pdf",),
         description="Hashed NLM comparison",
         default_seed=701,
-        build=_plot_hashednlm,
+        build=_plot_hashednlm4,
+    ),
+    PlotSpec(
+        name="hashednlm6",
+        outputs=("hashednlm.pdf",),
+        description="Hashed NLM comparison",
+        default_seed=701,
+        build=_plot_hashednlm6,
+    ),
+    PlotSpec(
+        name="hashednlm8",
+        outputs=("hashednlm.pdf",),
+        description="Hashed NLM comparison",
+        default_seed=701,
+        build=_plot_hashednlm8,
     ),
     PlotSpec(
         name="hashednlm_zoomed",
