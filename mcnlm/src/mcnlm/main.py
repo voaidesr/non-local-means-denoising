@@ -62,6 +62,8 @@ def standard_comparison_hashed_nlm_zoomed(
     sigma=17,
     num_features=4,
     beta=0.88,
+    zoom_size=64,
+    zoom_center=None,
     seed=None,
     show=True,
 ):
@@ -73,6 +75,8 @@ def standard_comparison_hashed_nlm_zoomed(
         sigma=sigma,
         num_features=num_features,
         beta=beta,
+        zoom_size=zoom_size,
+        zoom_center=zoom_center,
         seed=seed,
         show=show,
     )
