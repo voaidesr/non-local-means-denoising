@@ -24,35 +24,64 @@ def extract_patches(image: np.ndarray, patch_size: int) -> tuple[np.ndarray, np.
 
 
 @njit(parallel=True)
-def aggregate_denoised_patches(denoised: np.ndarray, counts: np.ndarray,
-                                similar_patches: np.ndarray, indices: np.ndarray,
-                                coords: np.ndarray, patch_size: int, n_patches: int):
-
+def aggregate_denoised_patches_nlm(denoised: np.ndarray, weights_sum: np.ndarray,
+                                    patches: np.ndarray, distances: np.ndarray, 
+                                    indices: np.ndarray, coords: np.ndarray, 
+                                    patch_size: int, n_patches: int, h_squared: float,
+                                    sigma_squared: float):
+    half = patch_size // 2
+    center_idx = half * patch_size + half
+    patch_dim = patch_size * patch_size
+    
     for idx in prange(n_patches):
         neighbor_indices = indices[idx, :]
-
-        k = len(neighbor_indices)
-        patch_dim = patch_size * patch_size
-        denoised_patch = np.zeros(patch_dim)
-
-        for ki in range(k):
-            ni = neighbor_indices[ki]
-            for pi in range(patch_dim):
-                denoised_patch[pi] += similar_patches[ni, pi]
-
-        for pi in range(patch_dim):
-            denoised_patch[pi] /= k
-
+        neighbor_distances = distances[idx, :]
+        
         i, j = coords[idx, 0], coords[idx, 1]
+        center_i = i + half
+        center_j = j + half
+        
+        weighted_sum = 0.0
+        weight_total = 0.0
+        
+        for ki in range(len(neighbor_indices)):
+            ni = neighbor_indices[ki]
+            
+            dist_sq = neighbor_distances[ki] / patch_dim
+            dist_sq = max(dist_sq - 2.0 * sigma_squared, 0.0)
+            weight = np.exp(-dist_sq / h_squared)
+            center_value = patches[ni, center_idx]
+            
+            weighted_sum += weight * center_value
+            weight_total += weight
+        
+        if weight_total > 0:
+            denoised[center_i, center_j] += weighted_sum
+            weights_sum[center_i, center_j] += weight_total
 
-        for di in range(patch_size):
-            for dj in range(patch_size):
-                pi = di * patch_size + dj
-                denoised[i + di, j + dj] += denoised_patch[pi]
-                counts[i + di, j + dj] += 1
+
+@njit(parallel=True)
+def recompute_distances(patches: np.ndarray, indices: np.ndarray, patch_dim: int) -> np.ndarray:
+    n_patches = indices.shape[0]
+    k = indices.shape[1]
+    distances = np.zeros((n_patches, k), dtype=np.float64)
+    
+    for idx in prange(n_patches):
+        patch_i = patches[idx, :]
+        for ki in range(k):
+            ni = indices[idx, ki]
+            patch_j = patches[ni, :]
+            dist_sq = 0.0
+            for d in range(patch_dim):
+                diff = patch_i[d] - patch_j[d]
+                dist_sq += diff * diff
+            distances[idx, ki] = dist_sq
+    
+    return distances
 
 
-def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 10):
+def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 1000, 
+                      sigma: float = 0.0, h_factor: float = 0.55):
     time_extract = time.time()
     patches, coords = extract_patches(image, patch_size)
     time_extract_end = time.time()
@@ -63,31 +92,44 @@ def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 10):
     assert patch_dim == patch_size * patch_size, "Patch dimension mismatch"
     print(f"Extracted {n_patches} patches of size {patch_size}x{patch_size} (dim={patch_dim})")
 
-    pca = PCA(n_components=10)
+    pca_start = time.time()
+    n_components = min(10, patch_dim)
+    pca = PCA(n_components=n_components)
     patches_reduced = pca.fit_transform(patches)
-    print(f"PCA reduced patch dimension from {patch_dim} to {patches_reduced.shape[1]}")
+    pca_end = time.time()
+    print(f"PCA reduction ({patch_dim}D -> {n_components}D) took {pca_end - pca_start:.2f} seconds")
 
     tree_build_start = time.time()
     kdtree = KDTree(patches_reduced)
     tree_build_end = time.time()
-    print(f"K-D tree build took {tree_build_end - tree_build_start:.2f} seconds")
+    print(f"KDTree build took {tree_build_end - tree_build_start:.2f} seconds")
 
-    # Batch query all patches at once
     query_start = time.time()
     _, indices = kdtree.query(patches_reduced, k=k_neighbors)
     query_end = time.time()
-    print(f"Batch K-D tree query took {query_end - query_start:.2f} seconds")
+    print(f"Batch KDTree query took {query_end - query_start:.2f} seconds")
+    
+    dist_start = time.time()
+    distances = recompute_distances(patches, indices, patch_dim)
+    dist_end = time.time()
+    print(f"Distance recomputation took {dist_end - dist_start:.2f} seconds")
+    
+    h = h_factor * sigma
+    h_squared = h * h
+    sigma_squared = sigma * sigma
 
     denoised = np.zeros_like(image)
-    counts = np.zeros_like(image)
+    weights_sum = np.zeros_like(image)
 
     aggregate_start = time.time()
-    aggregate_denoised_patches(denoised, counts, patches, indices, coords, patch_size, n_patches)
+    aggregate_denoised_patches_nlm(denoised, weights_sum, patches, distances, 
+                                    indices, coords, patch_size, n_patches, 
+                                    h_squared, sigma_squared)
     aggregate_end = time.time()
     print(f"Parallel aggregation took {aggregate_end - aggregate_start:.2f} seconds")
 
-    # Normalize by counts
-    denoised = np.divide(denoised, counts, where=counts > 0)
+    # Normalize by weight sums
+    denoised = np.divide(denoised, weights_sum, where=weights_sum > 0)
 
     return denoised
 
@@ -100,7 +142,7 @@ def kdtree_nlm(image_path: str, output_path: str) -> None:
     patch_size = 5
     padded_noisy = np.pad(noisy, patch_size // 2, mode='reflect')
 
-    denoised = run_kdtree_naive(padded_noisy, patch_size)
+    denoised = run_kdtree_naive(padded_noisy, patch_size, sigma=sigma/255.0)
 
     pad = patch_size // 2
     denoised = denoised[pad:-pad, pad:-pad]
