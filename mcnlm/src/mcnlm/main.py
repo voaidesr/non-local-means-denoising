@@ -2,6 +2,7 @@ from mcnlm.mc_convergence import mc_convergence, compare_noise_estimation
 
 from mcnlm.utils import show_mcnlm_result_zoomed, show_matches, show_nlm_result_zoomed
 from mcnlm.kdtree import kdtree_nlm
+from mcnlm.comparison import compare_all_methods
 import numpy as np
 import sys
 
@@ -73,6 +74,21 @@ def results_kdtree_nlm():
     #     output_path='results/kdtree/kdtree_comparison.pdf',
     # )
 
+def comparison_all_methods():
+    compare_all_methods(
+        image_path='imgs/clock.tiff',
+        output_path='../docs/res/methods_comparison_clock.pdf',
+        zoom=(130, 120, 64, 64),
+        sampling_prob=0.5
+    )
+
+    compare_all_methods(
+        image_path='imgs/clock.tiff',
+        output_path='../docs/res/methods_comparison_clock_2.pdf',
+        zoom=(50, 150, 64, 64),
+        sampling_prob=0.5
+    )
+
 def main():
     if len(sys.argv) > 1:
         command = sys.argv[1]
@@ -92,9 +108,12 @@ def main():
         elif command == 'kdtree':
             print("Running K-d tree results...")
             results_kdtree_nlm()
+        elif command == 'compare_all':
+            print("Running comparison of all methods...")
+            comparison_all_methods()
         else:
             print(f"Unknown command: {command}")
-            print("Available commands: compare_noise, convergence, mcnlm, nlm")
+            print("Available commands: compare_noise, convergence, mcnlm, nlm, kdtree, compare_all")
     else:
         # Default behavior
         results_naive_nlm()

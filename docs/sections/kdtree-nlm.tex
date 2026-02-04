@@ -42,3 +42,7 @@ For RGB images, we would need to also consider the color channels, resulting in 
 \State \Return $Z$
 \end{algorithmic}
 \end{algorithm}
+
+\subsection{Experimental Results}
+
+We compared the two approaches (Monte Carlo NLM and KD-Tree NLM) with the \texttt{clock} image from the \texttt{SIPI Image Database}, corrupted with Gaussian noise with $\sigma = 17$. We can see that both approaches have very similar performance in terms of PSNR and MSE, even though they look pretty different. The Monte Carlo approach works very well with large uniform spaces, but struggles near rough edges, while the KD-Tree approach can outperform it in these areas, but looks more noisy in large uniform areas. This is to be expected, since the Monte Carlo approach is more likely to be able to find good patches in large similar areas, and struggle in very dense, high-frequency ones. The KD-Tree approach, on the other hand, is not restricted by a fixed window search area, and can find good patches even in high-frequency areas, as long as they are present somewhere in the image. However, the noise in the background can be attributed to the fact that it's behaving too good --- since there are many patches similar to the noisy one, it's likely to pick the ones with similar noise patterns, resulting in less effective denoising.
