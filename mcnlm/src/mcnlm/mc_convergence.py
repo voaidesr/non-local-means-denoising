@@ -6,12 +6,14 @@ import mcnlm.mc_nlm as mc_nlm
 import mcnlm.naive_nlm as naive_nlm
 
 
-def run_mc_convergence(image_path, xis, known_sigma=True):
+def run_mc_convergence(image_path, xis, known_sigma=True, seed: int | None = None, deterministic: bool = False):
     """
     Run MCNLM for different sampling probabilities and compute MSE between MC method and naive NLM.
     """
     image = load_image(image_path)
     sigma = 17
+    if seed is not None:
+        np.random.seed(seed)
     noisy = add_gaussian_noise(
         image * 255, sigma=sigma).astype(np.float32) / 255.0
 
@@ -41,7 +43,7 @@ def run_mc_convergence(image_path, xis, known_sigma=True):
     print(
         f"MC-NLM with search window {2 * SEARCH_RADIUS + 1}×{2 * SEARCH_RADIUS + 1}")
 
-    for xi in xis:
+    for idx, xi in enumerate(xis):
         print(f"sampling_prob = {xi}")
 
         mc_params = mc_nlm.MCNLMParams(
@@ -52,7 +54,10 @@ def run_mc_convergence(image_path, xis, known_sigma=True):
             spatial_sigma=1e10,
             sampling_prob=xi
         )
-        mc = mc_nlm.test_mcnlm(noisy, mc_params) * 255.0
+        mc_seed = None
+        if seed is not None:
+            mc_seed = seed + 1000 + idx
+        mc = mc_nlm.test_mcnlm(noisy, mc_params, deterministic=deterministic, seed=mc_seed) * 255.0
         mc_clean_mse.append(mse(mc, image))
         mc_clean_psnr.append(psnr(mc, image))
         print(
@@ -61,12 +66,19 @@ def run_mc_convergence(image_path, xis, known_sigma=True):
     return xis, mc_clean_mse, mc_clean_psnr, naive_clean_mse, native_clean_psnr
 
 
-def mc_convergence(image_path, output_path1, output_path2):
+def mc_convergence(
+    image_path,
+    output_path1,
+    output_path2,
+    seed: int | None = None,
+    deterministic: bool = False,
+    show: bool = True,
+):
     probs = np.linspace(0, 1, 13)
     # probs = [1]
     print('Testing convergence for probs: ', probs)
     xis, mc_clean_errors, mc_clean_psnr, naive_mse, naive_psnr = run_mc_convergence(
-        image_path, xis=probs)
+        image_path, xis=probs, seed=seed, deterministic=deterministic)
 
     plt.figure(figsize=(7, 5))
 
@@ -83,9 +95,13 @@ def mc_convergence(image_path, output_path1, output_path2):
     plt.legend()
     plt.tight_layout()
     plt.savefig(output_path1, bbox_inches='tight', dpi=300)
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
     # MC-NLM PSNR
+    plt.figure(figsize=(7, 5))
     plt.plot(xis, mc_clean_psnr, 'o-', label='MC-NLM vs clean')
     plt.axhline(y=naive_psnr, color='r', linestyle='--',
                 label=f'Naive NLM PSNR = {naive_psnr}')
@@ -98,16 +114,29 @@ def mc_convergence(image_path, output_path1, output_path2):
     plt.legend()
     plt.tight_layout()
     plt.savefig(output_path2, bbox_inches='tight', dpi=300)
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
-def compare_noise_estimation(image_path, output_path_visual, output_path_mse, output_path_psnr):
+def compare_noise_estimation(
+    image_path,
+    output_path_visual,
+    output_path_mse,
+    output_path_psnr,
+    seed: int | None = None,
+    deterministic: bool = False,
+    show: bool = False,
+):
     """
     Compare MCNLM performance with known vs estimated noise.
     Creates side-by-side comparison and convergence plots.
     """
     image = load_image(image_path)
     true_sigma = 17
+    if seed is not None:
+        np.random.seed(seed)
     noisy = add_gaussian_noise(
         image * 255, sigma=true_sigma).astype(np.float32) / 255.0
 
@@ -135,8 +164,11 @@ def compare_noise_estimation(image_path, output_path_visual, output_path_mse, ou
         sampling_prob=1.0
     )
 
-    denoised_known = mc_nlm.test_mcnlm(noisy, params_known) * 255.0
-    denoised_estimated = mc_nlm.test_mcnlm(noisy, params_estimated) * 255.0
+    mc_seed = None
+    if seed is not None:
+        mc_seed = seed + 2000
+    denoised_known = mc_nlm.test_mcnlm(noisy, params_known, deterministic=deterministic, seed=mc_seed) * 255.0
+    denoised_estimated = mc_nlm.test_mcnlm(noisy, params_estimated, deterministic=deterministic, seed=mc_seed) * 255.0
 
     # Visual comparison plot
     fig, axs = plt.subplots(1, 4, figsize=(15, 5))
@@ -163,5 +195,8 @@ def compare_noise_estimation(image_path, output_path_visual, output_path_mse, ou
 
     plt.tight_layout()
     plt.savefig(output_path_visual, bbox_inches='tight', dpi=300)
-    plt.close()
+    if show:
+        plt.show()
+    else:
+        plt.close()
     print(f"Visual comparison saved to {output_path_visual}")

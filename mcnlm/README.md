@@ -30,8 +30,14 @@ poetry install
 # activate environment
 poetry env activate
 
-# run
-poetry run mcnlm
+# list plots
+poetry run mcnlm --list
+
+# generate all plots (reproducible)
+poetry run mcnlm --all --deterministic
+
+# generate a single plot
+poetry run mcnlm --plot mcnlm2
 ```
 
 ## Resources
