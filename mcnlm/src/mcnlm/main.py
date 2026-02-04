@@ -174,32 +174,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
-"""
-def results_kdtree_nlm():
-    kdtree_nlm(
-        image_path='imgs/clock.tiff',
-        output_path='results/kdtree/kdtree_comparison.pdf',
-    )
-
-    # kdtree_nlm(
-    #     image_path='imgs/city.tiff',
-    #     output_path='results/kdtree/kdtree_comparison.pdf',
-    # )
-
-def comparison_all_methods():
-    compare_all_methods(
-        image_path='imgs/clock.tiff',
-        output_path='../docs/res/methods_comparison_clock.pdf',
-        zoom=(130, 120, 64, 64),
-        sampling_prob=0.5
-    )
-
-    compare_all_methods(
-        image_path='imgs/clock.tiff',
-        output_path='../docs/res/methods_comparison_clock_2.pdf',
-        zoom=(50, 150, 64, 64),
-        sampling_prob=0.5
-    )
-"""
