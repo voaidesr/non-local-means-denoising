@@ -51,6 +51,17 @@ def add_gaussian_noise(image, sigma, mean=0):
     noisy_image = np.clip(noisy_image, 0, 255).astype(np.uint8)
     return noisy_image
 
+def add_gaussian_noise_normalized(image, sigma, mean=0):
+    """
+    Adds noise without quantizing to integers.
+    Works for both [0, 255] and [0, 1] scales depending on input.
+    """
+    gauss = np.random.normal(mean, sigma, image.shape).astype(np.float32)
+    # Using simple addition is safer than cv2.add for floats to avoid unexpected internal scaling
+    noisy_image = image.astype(np.float32) + gauss
+    
+    # Clip to maintain physical pixel bounds
+    return np.clip(noisy_image, 0, image.max() if image.max() > 1 else 1.0)
 
 def estimate_noise(image, cutoff_ratio: float = 0.15):
     """
@@ -253,7 +264,7 @@ def show_matches(image_path, points, output_path, K=3000):
     """
     # --- load + noisy ---
     image = load_image(image_path)
-    SIGMA = 17
+    SIGMA = 17 # alter sigma as needed
     noisy = add_gaussian_noise(image*255, sigma=SIGMA).astype(np.float32)/255.0
 
     params = mc_nlm.MCNLMParams(

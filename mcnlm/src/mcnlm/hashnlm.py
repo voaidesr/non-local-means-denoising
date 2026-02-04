@@ -148,3 +148,4 @@ def denoise_hashnlm(noisy_image, sigma, num_features, beta):
     # denoised_image = scipy.ndimage.gaussian_filter(
     #     denoised_image, sigma=0.5)
     return denoised_image
+    
