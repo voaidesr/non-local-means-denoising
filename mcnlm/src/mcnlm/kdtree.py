@@ -23,6 +23,41 @@ def extract_patches(image: np.ndarray, patch_size: int) -> tuple[np.ndarray, np.
     return patches, coords
 
 
+def patch_centers(coords: np.ndarray, patch_size: int) -> np.ndarray:
+    pad = patch_size // 2
+    return coords + pad
+
+
+def center_to_patch_index(center_i: int, center_j: int, height: int, width: int, patch_size: int) -> int:
+    pad = patch_size // 2
+    top_i = max(0, min(center_i - pad, height - patch_size))
+    top_j = max(0, min(center_j - pad, width - patch_size))
+    grid_w = width - patch_size + 1
+    return top_i * grid_w + top_j
+
+
+def local_window_indices(
+    coords_center: np.ndarray,
+    center_i: int,
+    center_j: int,
+    search_radius: int,
+) -> np.ndarray:
+    mask = (
+        (np.abs(coords_center[:, 0] - center_i) <= search_radius) &
+        (np.abs(coords_center[:, 1] - center_j) <= search_radius)
+    )
+    return np.where(mask)[0]
+
+
+def patch_distances(
+    patches: np.ndarray,
+    query_index: int,
+    neighbor_indices: np.ndarray,
+) -> np.ndarray:
+    diff = patches[neighbor_indices] - patches[query_index]
+    return np.sum(diff * diff, axis=1)
+
+
 @njit(parallel=True)
 def aggregate_denoised_patches_nlm(denoised: np.ndarray, weights_sum: np.ndarray,
                                     patches: np.ndarray, distances: np.ndarray, 
@@ -78,6 +113,22 @@ def recompute_distances(patches: np.ndarray, indices: np.ndarray, patch_dim: int
             distances[idx, ki] = dist_sq
     
     return distances
+
+
+def kdtree_knn(
+    patches: np.ndarray,
+    k_neighbors: int = 100,
+    n_components: int | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    patch_dim = patches.shape[1]
+    if n_components is None:
+        n_components = min(10, patch_dim)
+    pca = PCA(n_components=n_components)
+    patches_reduced = pca.fit_transform(patches)
+    kdtree = KDTree(patches_reduced)
+    _, indices = kdtree.query(patches_reduced, k=k_neighbors)
+    distances = recompute_distances(patches, indices, patch_dim)
+    return indices, distances
 
 
 def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 1000, 
