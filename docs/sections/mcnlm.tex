@@ -56,6 +56,7 @@ In the end, we will aproximate the result $z$ by another random variable:
 
 However,
 \begin{equation}
+\label{eq:Z}
     \mathbb{E}[Z] = \mathbb{E}\left[\frac{A}{B}\right] \neq \frac{\mathbb{E}[A]}{\mathbb{E}[B]} = z
 \end{equation}
 
@@ -137,13 +138,13 @@ In the figures \ref{fig1}, \ref{fig2} we can see how the MCNLM algorithm behaves
 \end{figure}
 
 
-\section{Stochastic Approximation of Non-Local Means}\label{sec:ineq}
+\section{Stochastic Approximation of Non-Local Means}
 We yield the question whether the Monte-Carlo variant of our algorithm is indeeed reliable and aproaches the full Non-Local Means solution. For this we need to analyze the approximation error $|Z - z|$.
 
 To understand our approximation, we will study the empirical sampling ratio $S_{n}$. The law of large numbers states that the empirical mean $S_{n}$ of a large number of indepent random variable is close to the true mean.
 
 \subsection{Probability Bounds}
-For any error bound $\varepsilon > 0$ and any sampling pattern $p$ with $0 < p_{j} <= 1$ and $\sum_{j=1}^{n}p_{j} = \varepsilon$ we want to study the probability: 
+For any error bound $\varepsilon > 0$ and any sampling pattern $p$ with $0 < p_{j} <= 1$ and $\sum_{j=1}^{n}p_{j} = \varepsilon$ we want to study the probability:
 \begin{equation}
     \mathbb{P}(|S_{n} - \mathbb{E}[S_{n}]| > \varepsilon)
 \end{equation}
@@ -153,62 +154,65 @@ From the Cebyshev inequality we know that:
     \mathbb{P}(|S_{n} - \mathbb{E}[S_{n}]| > \varepsilon) < \frac{Var[I_{1}]}{n\varepsilon^{2}}, \forall \varepsilon > 0
 \end{equation}
 
-This bound provided by the Cebyshev inequality above is too loose, only providing a linear descent of the error probability as $n \to \infty$. 
+This bound provided by the Cebyshev inequality above is too loose, only providing a linear descent of the error probability as $n \to \infty$.
 
-We can use the Bernstein inequality to provide a much tighter exponential bound. The Bernstein inequality states that for $X_{1}, \dots X_{n}$, a sequence of independent bounded random variables ($l_{j} <= X_{j} <= u_{j}$, where $u_{j}$ and $l_{j}$ are constants), the following is true:
+We can use the Bernstein inequality to provide a much tighter exponential bound. The following is true for a sequence of $n$ Bernoulli i.i.d. variables:
 \begin{equation}
-    \mathbb{P}(|S_{n} - \mathbb{E}[S_{n}]| > \varepsilon) \le exp \left (-\frac{n\varepsilon^2}{2(\frac{1}{n}\sum_{j=1}^{n}Var[X_{j}] + M\epsilon/3)} \right )
+    \mathbb{P}(|S_{n} - \mathbb{E}[S_{n}]| > \varepsilon) \le \operatorname{exp} \left (-\frac{n\varepsilon^2}{2\left(\xi(1 - \xi)+ \varepsilon/3\right)} \right )
 \end{equation}
 
-where $S_{n} = \frac{1}{n}\sum_{j=1}^{n}X_{j}$ and $M = max_{1 \le j \le n}\frac{u_{j} - l_{j}}{2}$
-
-In our situation, $X_{j} = I_{j}$, $M=1$, $\mathbb{E}[S_{n}] = \xi$, so:
-$$
-\frac{1}{n}\sum_{j=1}^{n}Var[X_{j}] = \frac{1}{n}\sum_{j=1}^{n}p_{j}(1-p_{j}) = \xi(1-\xi).
-$$
-
-By substituing this result in the equation above we get an exponential bound on the error probability.
+where $S_{n} = \frac{1}{n}\sum_{j=1}^{n}I_{j}$.
 
 
 \subsection{General Error Probability Bound}
-To rigorously quantify the reliability of the Monte Carlo approximation, we refer to the concentration bound derived in the literature. For a sample size $n$ and an error tolerance $\varepsilon > 0$, the probability that the Monte Carlo estimate $Z(\mathbf{p})$ deviates from the exact NLM value $z$ is bounded by exponential decay terms:
+\label{sec:ineq}
+
+To rigorously quantify the reliability of the Monte Carlo approximation, we refer to the concentration bound derived in \cite{mcnlm}. For a sample size $n$ and an error tolerance $\varepsilon > 0$, the probability that the Monte Carlo estimate $Z$ deviates from the exact NLM value $z$ is bounded by:
 
 \begin{equation}
+    \label{eq:full_bound}
     \begin{split}
-    \mathbb{P}(|Z(\boldsymbol{p}) - z| > \varepsilon ) \leq & \exp \{-n\xi\} \\
-    & + \exp \left\{ \frac{-n(\mu_B \varepsilon)^2}{ 2 \left( \frac{1}{n} \sum_{j=1}^n \alpha_j^2 \left( \frac{1-p_j}{p_j} \right) + (\mu_B \varepsilon)M_\alpha/6 \right) } \right\} \\
-    & + \exp \left\{ \frac{-n(\mu_B \varepsilon)^2}{ 2 \left( \frac{1}{n} \sum_{j=1}^n \beta_j^2 \left( \frac{1-p_j}{p_j} \right) + (\mu_B \varepsilon)M_\beta/6 \right) } \right\},
+    \mathbb{P}(|Z - z| > \varepsilon ) \leq & \exp \{-n\xi\} \\
+    & + 2 \exp \left\{ \frac{-n(\mu_B \varepsilon)^2}{ 2 \left( \frac{1}{n} \sum_{j=1}^n \alpha_j^2 \left( \frac{1-p_j}{p_j} \right) + \frac{(\mu_B \varepsilon)M_\alpha}{6} \right) } \right\}
     \end{split}
 \end{equation}
 
-where:
-\begin{itemize}
-    \item $\xi$ represents the sampling density (e.g., $p_j$ in uniform sampling).
-    \item $\mu_B$ is the average similarity weight (expected value of the denominator).
-    \item $K$ is a constant bound dependent on the variance of the weights in the search window.
-\end{itemize}
+\subsubsection{Simplification for Uniform Sampling}
+While Equation \ref{eq:full_bound} accounts for variable sampling probabilities, our implementation utilizes a uniform sampling pattern where $p_j = p$ for all patches. Furthermore we have $\mu_B \leq 1$.
 
+Under these experimental conditions, the bound simplifies significantly. Neglecting the trivial failure term $\exp\{-n\xi\}$ (which approaches zero for our window size of $n=441$), the failure probability becomes:
 
-\textbf{Example: }
-To validate this bound, we consider a concrete example of a one-dimensional signal with length $n = 10^4$, corrupted by Gaussian noise with standard deviation $\sigma = 5/255$.
-
-We apply Monte Carlo NLM to denoise a pixel using a \textbf{uniform sampling pattern} where only $5\%$ of the pixels are sampled ($p_j = \xi = 0.05$ for all $j$). We set an error tolerance of $\varepsilon = 0.01$.
-
-Using the derived constants:
-\begin{itemize}
-    \item Average similarity weight: $\mu_B = 0.3015$
-    \item Variance term 1: $\frac{1}{n} \sum \alpha_j^2 \approx 1.335 \times 10^{-4}$
-    \item Variance term 2: $\frac{1}{n} \sum \beta_j^2 \approx 1.452 \times 10^{-4}$
-\end{itemize}
-
-And substituting these values into the probability bound yields:
 \begin{equation}
-    \mathbb{P}(|Z(\mathbf{p}) - z| > 0.01 ) \leq 6.516 \times 10^{-6}
+    \label{eq:simple_bound}
+    \mathbb{P}(|Z - z| > \varepsilon ) \leq 2 \exp \left( \frac{-n \varepsilon^2}{ 2 \left(\rho \sum_{j=1}^{n} \alpha_j^2 + \varepsilon/6 \right) } \right)
 \end{equation}
 
-\vspace*{1cm}
+\noindent where $n = 441$ is the total pixels in the $21 \times 21$ search window,
+$\rho = (1-p)/p$ is the sampling penalty factor and
+$\alpha_j = \frac{w_j}{\sum_{k = 1}^{n} w_k}$ is the normalized weight of the patch $j$.
 
-\textbf{Conclusion:} This result demonstrates that even when using only \textbf{5\% of the samples}, the Monte Carlo estimate stays within $1\%$ of the true NLM result with overwhelming probability ($1 - 6.5 \times 10^{-6}$). This theoretical calculation validates the rapid MSE convergence observed in our empirical charts.
+\subsubsection{Derivation of Numerical Bounds}
+To obtain a concrete probability bound, we will replace the values of the variables in Equation \ref{eq:simple_bound} with the parameters from our experimental setup. The parameters are, as follows, $n = 441$, for a $21 \times 21$ search window, $\rho = (1 - 0.5)/0.5 = 1$. We select the desired error tolerance of $\varepsilon = 0.05$.
+
+The remaining term, $\sum_{j=1}^{n} \alpha_j^2$, is non-trivial as it depends on the image content. We can, however, derive bounds for two limiting cases:
+
+\paragraph{Case 1: Homogeneous Regions}
+In flat image regions (e.g., sky or smooth walls), the NLM weights are distributed nearly uniformly across the search window.
+$$ w_j \approx w \quad \forall j \implies \alpha_j \approx \frac{1}{n} $$
+Substituting this into the variance term:
+$$ \sum_{j=1}^{n} \alpha_j^2 \approx \sum_{j=1}^{n} \left(\frac{1}{n}\right)^2 = n \cdot \frac{1}{n^2} = \frac{1}{441} \approx 0.0023 $$
+
+From \ref{eq:simple_bound}, we calculate that the resulting probability is $\mathbb{P}(|Z - z| > \varepsilon) < 10^{-20}$, confirming that random sampling is statistically safe in smooth regions.
+
+\paragraph{Case 2: Structured Regions}
+In textured regions or near edges, the weights concentrate on a small subset of patches that have a high similarity to the patch we want to denoise. We estimate this by defining an \textit{effective neighbor count} $k_{\text{eff}}$. If the algorithm finds only $k_{\text{eff}} \approx 10$ strong matches in the window (a conservative estimate for detailed texture), the normalized weights approximate $\alpha_j \approx 1/10$ for the matches and $0$ otherwise.
+$$ \sum_{j=1}^{n} \alpha_j^2 \approx \sum_{j=1}^{10} \left(\frac{1}{10}\right)^2 = 10 \cdot \frac{1}{100} = 0.1 $$
+Using this estimate in  \ref{eq:simple_bound}:
+$$ \text{Exponent} = \frac{-441 \cdot (0.05)^2}{2(1 \cdot 0.1 + 0.05/6)} \approx \frac{-1.1025}{0.216} \approx -5.1 $$
+
+\noindent therefore
+$$ \mathbb{P}(|Z - z| > \varepsilon) \leq 2 e^{-5.1} \approx 0.012 $$
+This shows that even in worst-case scenarios, the probability of the Monte Carlo estimate deviating by more than $5\%$ is strictly bounded below $1.2\%$.
 
 
 \begin{figure}[htbp]
