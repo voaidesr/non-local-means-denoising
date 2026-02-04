@@ -217,6 +217,19 @@ def _plot_hashednlm(ctx: PlotContext) -> None:
     )
 
 
+def _plot_hashednlm_zoomed(ctx: PlotContext) -> None:
+    from mcnlm.hashnlm_viz import standard_comparison_hashed_nlm_zoomed
+
+    standard_comparison_hashed_nlm_zoomed(
+        str(repo_root() / "mcnlm" / "imgs" / "land.tiff"),
+        str(ctx.out_dir / "hashednlm_zoomed.pdf"),
+        zoom_size=64,
+        zoom_center=None,
+        seed=ctx.seed,
+        show=ctx.show,
+    )
+
+
 PLOT_SPECS: tuple[PlotSpec, ...] = (
     PlotSpec(
         name="mcnlm1",
@@ -315,6 +328,13 @@ PLOT_SPECS: tuple[PlotSpec, ...] = (
         description="Hashed NLM comparison",
         default_seed=701,
         build=_plot_hashednlm,
+    ),
+    PlotSpec(
+        name="hashednlm_zoomed",
+        outputs=("hashednlm_zoomed.pdf",),
+        description="Hashed NLM comparison with zoomed region",
+        default_seed=702,
+        build=_plot_hashednlm_zoomed,
     ),
 )
 
