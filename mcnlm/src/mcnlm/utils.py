@@ -99,7 +99,7 @@ def estimate_noise(image, cutoff_ratio: float = 0.15):
 
     return sigma
 
-def show_results(original, noisy, denoised):
+def show_results(original, noisy, denoised, show: bool = True):
     """Compares original, noisy and denoised image"""
 
     plt.figure(figsize=(12, 5))
@@ -114,14 +114,19 @@ def show_results(original, noisy, denoised):
         plt.imshow(img, cmap="gray")
         plt.title(title)
         plt.axis("off")
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 # ------------ Naive NLM Utilities ------------
-def show_nlm_result_zoomed(image_path, zoom, output_path):
+def show_nlm_result_zoomed(image_path, zoom, output_path, seed: int | None = None, show: bool = True):
     image = load_image(image_path)
 
     sigma = 17.0
+    if seed is not None:
+        np.random.seed(seed)
     noisy = add_gaussian_noise(image*255, sigma)
 
     x0, y0, w, h = zoom
@@ -172,14 +177,27 @@ def show_nlm_result_zoomed(image_path, zoom, output_path):
         
     plt.tight_layout()
     plt.savefig(output_path)
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 # ------------ MCNLM utilites ---------------
-def show_mcnlm_result_zoomed(image_path, probs, zoom, output_path):
+def show_mcnlm_result_zoomed(
+    image_path,
+    probs,
+    zoom,
+    output_path,
+    seed: int | None = None,
+    deterministic: bool = False,
+    show: bool = True,
+):
     image = load_image(image_path)
 
     sigma = 17.0
+    if seed is not None:
+        np.random.seed(seed)
     noisy = add_gaussian_noise(image*255, sigma) / 255.0
 
     x0, y0, w, h = zoom
@@ -221,7 +239,10 @@ def show_mcnlm_result_zoomed(image_path, probs, zoom, output_path):
         )
 
         noisy = noisy / 255.0
-        denoised = mc_nlm.test_mcnlm(noisy, params) * 255.0
+        mc_seed = None
+        if seed is not None:
+            mc_seed = seed + 100 + i
+        denoised = mc_nlm.test_mcnlm(noisy, params, deterministic=deterministic, seed=mc_seed) * 255.0
         noisy = noisy * 255.0
 
         # Full
@@ -254,10 +275,13 @@ def show_mcnlm_result_zoomed(image_path, probs, zoom, output_path):
     )
     plt.tight_layout()
     plt.savefig(output_path)
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
-def show_matches(image_path, points, output_path, K=3000):
+def show_matches(image_path, points, output_path, K=3000, seed: int | None = None, show: bool = True):
     """
     Visualize MC-NLM matches using Monte-Carlo sampling.
     Only a subset of offsets is used according to sampling_prob.
@@ -265,6 +289,8 @@ def show_matches(image_path, points, output_path, K=3000):
     # --- load + noisy ---
     image = load_image(image_path)
     SIGMA = 17 # alter sigma as needed
+    if seed is not None:
+        np.random.seed(seed)
     noisy = add_gaussian_noise(image*255, sigma=SIGMA).astype(np.float32)/255.0
 
     params = mc_nlm.MCNLMParams(
@@ -332,8 +358,10 @@ def show_matches(image_path, points, output_path, K=3000):
     plt.title(f"Strong matches (Monte-Carlo sampling prob = {params.sampling_prob})")
     plt.axis('off')
     plt.tight_layout()
-    plt.show()
     plt.savefig(output_path)
-
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 

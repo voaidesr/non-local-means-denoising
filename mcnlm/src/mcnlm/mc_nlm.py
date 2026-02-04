@@ -89,15 +89,51 @@ def mcnlm_denoise(noisy, search_radius, patch_size, sigma, h, sampling_prob):
     return out
 
 
-def test_mcnlm(noisy, params: MCNLMParams):
+@njit
+def mcnlm_denoise_serial(noisy, search_radius, patch_size, sigma, h, sampling_prob, seed):
+    """Deterministic, single-threaded MCNLM denoising."""
+    np.random.seed(seed)
+    out = np.zeros_like(noisy)
+
+    patch_radius = patch_size // 2
+    total_pad = search_radius + patch_radius
+
+    height = noisy.shape[0] - 2 * total_pad
+    width = noisy.shape[1] - 2 * total_pad
+
+    for i in range(height):
+        for j in range(width):
+            pi, pj = i + total_pad, j + total_pad
+            out[pi, pj] = mcnlm_local_numba(
+                noisy, pi, pj, patch_radius, search_radius,
+                sigma, h, sampling_prob
+            )
+
+    return out
+
+
+def test_mcnlm(noisy, params: MCNLMParams, deterministic: bool = False, seed: int | None = None):
     total_pad = params.search_radius + params.patch_radius
     padded = np.pad(noisy, total_pad, mode="reflect")
-    denoised = mcnlm_denoise(
-        padded, 
-        params.search_radius, 
-        params.patch_size, 
-        params.sigma, 
-        params.h_factor * params.sigma, 
-        params.sampling_prob
-    )
+    if deterministic:
+        if seed is None:
+            seed = 0
+        denoised = mcnlm_denoise_serial(
+            padded,
+            params.search_radius,
+            params.patch_size,
+            params.sigma,
+            params.h_factor * params.sigma,
+            params.sampling_prob,
+            seed,
+        )
+    else:
+        denoised = mcnlm_denoise(
+            padded,
+            params.search_radius,
+            params.patch_size,
+            params.sigma,
+            params.h_factor * params.sigma,
+            params.sampling_prob,
+        )
     return denoised[total_pad:-total_pad, total_pad:-total_pad]
