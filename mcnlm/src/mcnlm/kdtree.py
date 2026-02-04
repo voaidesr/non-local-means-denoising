@@ -92,12 +92,16 @@ def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 1000
     assert patch_dim == patch_size * patch_size, "Patch dimension mismatch"
     print(f"Extracted {n_patches} patches of size {patch_size}x{patch_size} (dim={patch_dim})")
 
-    pca_start = time.time()
-    n_components = min(10, patch_dim)
-    pca = PCA(n_components=n_components)
-    patches_reduced = pca.fit_transform(patches)
-    pca_end = time.time()
-    print(f"PCA reduction ({patch_dim}D -> {n_components}D) took {pca_end - pca_start:.2f} seconds")
+    patches_reduced = patches
+
+    # Uncomment below to enable PCA dimensionality reduction
+    # pca_start = time.time()
+    # n_components = patch_dim
+    # n_components = min(10, patch_dim)
+    # pca = PCA(n_components=n_components)
+    # patches_reduced = pca.fit_transform(patches)
+    # pca_end = time.time()
+    # print(f"PCA reduction ({patch_dim}D -> {n_components}D) took {pca_end - pca_start:.2f} seconds")
 
     tree_build_start = time.time()
     kdtree = KDTree(patches_reduced)
@@ -109,6 +113,7 @@ def run_kdtree_naive(image: np.ndarray, patch_size: int, k_neighbors: int = 1000
     query_end = time.time()
     print(f"Batch KDTree query took {query_end - query_start:.2f} seconds")
     
+
     dist_start = time.time()
     distances = recompute_distances(patches, indices, patch_dim)
     dist_end = time.time()
