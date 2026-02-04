@@ -14,7 +14,14 @@ For RGB images, we would need to also consider the color channels, resulting in 
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=1\linewidth]{res/knn_vs_mc_spatial.pdf}
+    \begin{subfigure}[b]{0.75\linewidth}
+        \centering
+        \includegraphics[width=\textwidth]{res/knn_vs_mc_spatial.pdf}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.75\linewidth}
+        \centering
+        \includegraphics[width=\textwidth]{res/knn_spatial_analysis.pdf}
+    \end{subfigure}
     \caption{MCLNM vs KD-Tree NLM patch selection comparison}
     \label{fig:kdtree-nlm-patch-selection}
 \end{figure}
@@ -49,16 +56,15 @@ We compared the two approaches (Monte Carlo NLM and KD-Tree NLM) with the \textt
 
 An idea for improvement would be to only use the KD-Tree approach in high-frequency areas, and use the Monte Carlo approach in low-frequency ones, to get the best of both worlds. Or, as another idea, we could build the KD-Tree locally for each search window and have a hybrid approach that uses both methods. However, due to time constraints, we were not able to explore these ideas further.
 
-
 \begin{figure}[htbp]
     \centering
-    \begin{subfigure}[b]{1\textwidth}
+    \begin{subfigure}[b]{0.75\textwidth}
         \centering
         \includegraphics[width=\textwidth]{res/methods_comparison_clock.pdf}
         \label{fig:clock_zoom}
     \end{subfigure}
     \vfill
-    \begin{subfigure}[b]{1\textwidth}
+    \begin{subfigure}[b]{0.75\textwidth}
         \centering
         \includegraphics[width=\textwidth]{res/methods_comparison_clock_2.pdf}
         \label{fig:portrait_zoom}
@@ -68,3 +74,6 @@ An idea for improvement would be to only use the KD-Tree approach in high-freque
     \label{fig:comparison}
 \end{figure}
 
+\subsection{Small Conclusion}
+
+The KD-Tree Accelerated Non-Local Means algorithm is an interesting approach to improve the efficiency of the NLM algorithm using the idea from Monte Carlo NLM and improving on it. It does not provide a significant improvement, especially considering the bottlenecks in parallelization which can be a problem for large images, but it's still a valid approach that can be explored further. The paper by Adams et al.~\cite{adams2009gaussian} provides a more advanced approach that can be implemented for even better performance, adding new techniques to improve the speed of the algorithm and accuracy. It involves \emph{Monte Carlo sampling} and \emph{Splat-blur-slice} for faster search. It also solves issues such as the curse of dimensionality by using Principal Component Analysis (PCA) to reduce the dimensionality of the patches before inserting them into the KD-Tree. While this method was also tried in our implementation, it did not provide a significant improvement in performance or image quality.
