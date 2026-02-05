@@ -119,11 +119,11 @@
 \begin{frame}{KD-Tree NLM: Results}
   \begin{columns}[T,onlytextwidth]
     \column{0.5\textwidth}
-      \centering
-      \includegraphics[width=0.98\linewidth]{methods_comparison_clock.pdf}
+    \centering
+    \includegraphics[width=0.98\linewidth]{methods_comparison_clock.pdf}
     \column{0.5\textwidth}
-      \centering
-      \includegraphics[width=1\linewidth]{methods_comparison_clock_2.pdf}
+    \centering
+    \includegraphics[width=1\linewidth]{methods_comparison_clock_2.pdf}
   \end{columns}
   \vspace{0.1cm}
   \begin{itemize}
@@ -138,20 +138,44 @@
   \end{itemize}
   \vspace{0.1cm}
   \centering
-  \includegraphics[width=0.85\linewidth]{hashednlm.pdf}
+  \includegraphics[width=0.85\linewidth]{hashednlm_zoomed4.pdf}
+\end{frame}
+
+\begin{frame}{Hashed NLM}
+  \begin{itemize}
+    \item Features of this space are 4-dimensional vectors that contain the direct neighbours of our pixel.
+    \item Because the weighting kernel is axis-aligned we can use separable convolution.
+    \item Locality introduced by adding position as additional dimensions.
+          $$
+            H_1(g) = \sum_{j=1}^{|X|} \delta(g - f_j)
+          $$
+
+          $$
+            H_f(g) = \sum_{j=1}^{|X|} \delta(g - f_j) \cdot I[x_j]
+          $$
+
+          $$
+            \tilde{I}_i = \frac{(w_K * H_f)(\mathbf{f}_i)}{(w_K * H_1)(\mathbf{f}_i)} = \frac{H'_f(\mathbf{f}_i)}{H'_1(\mathbf{f}_i)}.
+          $$
+
+
+
+  \end{itemize}
+  \vspace{0.1cm}
+  \centering
 \end{frame}
 
 \begin{frame}{Noise Estimation via FFT}
   \begin{columns}[T,onlytextwidth]
     \column{0.48\textwidth}
-      \begin{itemize}
-        \item Estimate $\sigma$ from high-frequency components.
-        \item FFT $\rightarrow$ mask high frequencies $\rightarrow$ inverse FFT.
-        \item Use $\sigma = \text{std}(noise)$ for denoising.
-      \end{itemize}
+    \begin{itemize}
+      \item Estimate $\sigma$ from high-frequency components.
+      \item FFT $\rightarrow$ mask high frequencies $\rightarrow$ inverse FFT.
+      \item Use $\sigma = \text{std}(noise)$ for denoising.
+    \end{itemize}
     \column{0.52\textwidth}
-      \centering
-      \includegraphics[width=\linewidth]{noise_comparison_visual2.pdf}
+    \centering
+    \includegraphics[width=\linewidth]{noise_comparison_visual2.pdf}
   \end{columns}
 \end{frame}
 
