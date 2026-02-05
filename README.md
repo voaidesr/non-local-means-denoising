@@ -1,35 +1,44 @@
-# Monte Carlo Non-Local Means (MCNLM) Optimization
+# Different Implementations of the Non-Local Means Denoising Algorithm
 
-This repository implements an optimized **Non-Local Means (NLM)** denoising algorithm using **Monte Carlo sampling**. By selecting a random subset of patches rather than the entire image, this approach significantly reduces computational overhead while maintaining high visual fidelity.
+This repository contains the implementation of multiple NLM Denoising algorithms:
+- baseline Non-Local Means (NLM)
+- Monte Carlo NLM (MCNLM)
+- semi-local (spatial) sampling
+- KD-Tree accelerated NLM
+- Hashed NLM
+- FFT-based noise estimation
 
-This is an implementation of the [Monte Carlo Non-Local Means paper by Stanley H. Chan, Todd Zickler, Yue M. Lu](https://arxiv.org/pdf/1312.7366).
+## Paper
+- LaTeX source: `docs/main.tex` and `docs/sections/`
+- Figures/plots: `docs/res/`
 
-## Implementation
-The python implementation documentation is available [here](./mcnlm/README.md).
+## Code and Implementation
+- Python implementation lives in `mcnlm/src/mcnlm/`.
+- CLI for reproducing plots: `mcnlm` (details in `mcnlm/README.md`).
+- Key modules:
+  - `mcnlm/src/mcnlm/mc_nlm.py` (Monte Carlo NLM)
+  - `mcnlm/src/mcnlm/naive_nlm.py` (baseline NLM)
+  - `mcnlm/src/mcnlm/kdtree.py` (KD-Tree NLM)
+  - `mcnlm/src/mcnlm/hashnlm.py` (Hashed NLM)
+  - `mcnlm/src/mcnlm/mc_convergence.py` (stochastic analysis + plots)
 
-## Features
+## Results (from the paper)
 
-### Efficiency & Optimization
-* **Complexity Reduction**: Lowers computational cost from $\mathcal{O}(mnd)$ to $\mathcal{O}(mkd)$, where $k \ll n$.
-* **Bernoulli Sampling**: Uses a probability vector $p$ to generate a reference set of patches.
-* **Exponential Convergence**: Theoretical bounds ensure that the estimation error drops exponentially as the sample size increases.
+MCNLM denoising with different sampling probabilities:
 
-### Improved Methodology
-* **Spatial Locality**: Combines structural similarity with spatial proximity weights to preserve distinct features like stars or sharp edges.
-* **Noise Estimation (FFT)**: Includes a Fast Fourier Transform module to estimate unknown noise deviation ($\sigma$) in the frequency domain.
+![MCNLM results](docs/res/preview/mcnlm2.png)
 
-## Performance Summary
+Method comparison (Noisy vs MCNLM vs KD-Tree):
 
-The MCNLM algorithm achieves quality comparable to full NLM but at a fraction of the cost.
+![Method comparison](docs/res/preview/methods_comparison_clock.png)
 
-| Metric | Noisy Image | MCNLM ($p=0.3$) | MCNLM ($p=0.8$) | Naive NLM |
-| :--- | :--- | :--- | :--- | :--- |
-| **MSE** | ~275.4 | 97.06 | 58.16 | 69.14 |
+Hashed NLM comparison:
 
-* **Visual Results**: Effectively removes additive white Gaussian noise while preserving textures.
-* **Diminishing Returns**: MSE drops rapidly with initial sampling.
-* **Reliability**: High reliability is maintained even with only 5% of samples.
+![Hashed NLM](docs/res/preview/hashednlm.png)
 
-## Resources
-- [Original NLM paper](https://www.ipol.im/pub/art/2011/bcm_nlm/article.pdf)
-- [Monte Carlo Non-Local Means paper](https://arxiv.org/pdf/1312.7366)
+Noise estimation using FFT (known vs estimated sigma):
+
+![Noise estimation](docs/res/preview/noise_comparison_visual2.png)
+
+## Quick Start
+See [`mcnlm/README.md`](./mcnlm/README.md) for setup and plot reproduction commands.
