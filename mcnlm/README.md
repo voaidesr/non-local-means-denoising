@@ -1,45 +1,45 @@
 # MCNLM Python Implementation
 
-## Structure
-Our project is structured in multiple parts:
-- paralelized Naive NLM implementation: `naive_nlm.py`
-- paralelized Monte Carlo NLM implementation: `mc_nlm.py`
-- Monte Carlo simulator: `mc_convergence.py`
+This package contains the code used to generate the figures and results in the paper, including:
+- baseline Non-Local Means (NLM)
+- Monte Carlo NLM (MCNLM)
+- KD-Tree accelerated NLM
+- Hashed NLM
+- FFT-based noise estimation
 
-Image processing utilities are in `utils.py`.
+## Requirements
+- Python >= 3.11
+- Poetry
 
-## Paralelization
-To maximize efficiency, the implementation leverages **Numba-based parallelization**, achieving significant performance improvements by distributing the computationally intensive Monte Carlo sampling and patch weight calculations—which have a complexity of $\mathcal{O}(mkd)$ across multiple CPU cores.
-
-- JIT Compilation: Uses Numba's Just-In-Time (JIT) compilation to run Python code at near-native C++ speeds.
-- Multi-Core Execution: Offloads the large volume of independent pixel-wise operations to handle high-resolution images in a fraction of the time.
-
-## Running instructions
-We are using **poetry** for managing dependencies.
-
+## Setup
 ```bash
-# install poetry
-pip install --user poetry
-
-# project dir
 cd mcnlm
 
-# install deps
 poetry install
+```
 
-# activate environment
-poetry env activate
+Tip: the first run is slower because Numba compiles kernels.
 
-# list plots
+## Reproduce Plots
+All plots default to `docs/res` in the repo root.
+
+```bash
+# list available plot names
 poetry run mcnlm --list
 
-# generate all plots (reproducible)
+# generate every plot (reproducible)
 poetry run mcnlm --all --deterministic
 
-# generate a single plot
-poetry run mcnlm --plot mcnlm2
+# generate a single plot by name
+poetry run mcnlm --plot <plot_name> # (see from list)
+
+# generate multiple plots
+poetry run mcnlm --plot methods_comparison_clock --plot hashednlm
+
+# custom output directory
+poetry run mcnlm --plot noise_comparison_visual2 --out-dir /tmp/mcnlm-plots
 ```
 
 ## Resources
-- [Poetry](https://python-poetry.org/)
-- [Numba](https://numba.pydata.org/)
+- Poetry: https://python-poetry.org/
+- Numba: https://numba.pydata.org/
