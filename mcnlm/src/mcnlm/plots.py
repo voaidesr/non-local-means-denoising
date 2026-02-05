@@ -244,7 +244,7 @@ def _plot_hashednlm_zoomed4(ctx: PlotContext) -> None:
 
     standard_comparison_hashed_nlm_zoomed(
         str(repo_root() / "mcnlm" / "imgs" / "land.tiff"),
-        str(ctx.out_dir / "hashednlm_zoomed.pdf"),
+        str(ctx.out_dir / "hashednlm_zoomed4.pdf"),
         zoom_size=64,
         zoom_center=None,
         seed=ctx.seed,
@@ -256,7 +256,7 @@ def _plot_hashednlm_zoomed6(ctx: PlotContext) -> None:
 
     standard_comparison_hashed_nlm_zoomed(
         str(repo_root() / "mcnlm" / "imgs" / "land.tiff"),
-        str(ctx.out_dir / "hashednlm_zoomed.pdf"),
+        str(ctx.out_dir / "hashednlm_zoomed6.pdf"),
         zoom_size=64,
         zoom_center=None,
         seed=ctx.seed,

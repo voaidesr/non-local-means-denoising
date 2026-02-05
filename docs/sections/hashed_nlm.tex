@@ -1,0 +1,144 @@
+\section{Hashed Nonlocal Means}
+
+As we have seen so far, Nonlocal Means algorithms are computationally heavy. The main reason NLM is a "heavyweight" algorithm boils down to its exhaustive searching strategy. In a truly non-local naive NLM algorithm, we have to brute force through all pixels of the image. For every pixel, compare it against \textbf{every other pixel}. If $N$ is the number complexity, we obtain $O(N^2)$ search complexity. NLM means works by selecting patches of size $D$ x $D$. The total complexity of NLM is $O(N^2D^2)$.
+
+However, when we move from theory to a practical implementation, the complexity is usually expressed relative to a search window, as we do in the Monte carlo algorithm and our naive implementation. Considering the search window size $S$ x $S$, we obtain a total complexity of $O(NS^2D^2)$.
+
+We want an algorithm that doesn't compromise the non-locality of NLM and is also reasonably fast. This is motivated by denoising 3D images (especially 3D medical images from MRIs and scans that contain noise), where the complexity of the naive NLM or other NLM methods is not fulfilling. This subject is considered in the paper titled ``Hashed Nonlocal Means for Rapid Image Filtering'' by Nicholas Dowson and Olivier Salvado \cite{dowson2007hashed}, which addresses this exact problem of denoising 3D images. The algorithm and method they proposed can be well applied in our situation of denoising 2D grayscale images.
+
+Nicholas Dowson and Olivier Salvado introduce a significantly faster way to remove noise from digital images. The core innovation is the transition from an exhaustive search-based filtering approach to a signal-processing approach using discretized frequency distributions (hash spaces).
+
+\subsection{Standard NLM}
+Standard NLM assumes that a pixel $i$ should resemble other pixels $j$ throughout the image that have similar surrounding intensity patches. The smoothed intensity $\hat{I}[x_i]$ is traditionally calculated as:
+
+$$\hat{I}[x_i] = \frac{\sum_{j \in X} w(f_i, f_j) I[x_j]}{\sum_{j \in X} w(f_i, f_j)}$$
+
+So, here for every pixel in the image, we ask how similar is this pixel to every other pixel in the image.
+
+\subsection{From Global Summation to Feature Space Integration}
+
+The classic NLM approach is slow, searching through every single pixel $j$ in the image to see if its surrounding patch $f_j$ looks like our current pixel's patch $f_i$.
+
+To speed this up, we stop looking at where pixels are and start looking at what they look like. We do this by introducing a \textbf{feature space}. This features of this space are 4-dimensional vectors that contain the direct neighbours of our pixel (up, down, left, right). Let's consider now $g$, a generic neighbor pattern and an indicator function, $\delta(g)$. $\delta$ is similar to a dirac function: it only equals 1 when our generic pattern $g$ exactly matches a pixel's actual pattern $f_j$.
+
+By integrating over the entire Feature Space $\mathcal{F}$ (the set of all possible neighbor patterns), we can rewrite the smoothed intensity $\overline{I}[x_i]$ like this:
+\begin{equation}
+	\overline{I}[x_i] = \frac{\sum_{j=1}^{|X|} \int_{g\in\mathcal{F}} w_K(f_i - g) \delta(g - f_j) I[x_j] dg}{\sum_{j=1}^{|X|} \int_{g\in\mathcal{F}} w_K(f_i - g) \delta(g - f_j) dg}
+	\label{eq:kernel_estimate}
+\end{equation}
+
+\subsection{Hash Spaces}
+Let's consider:
+
+$$
+	H_1(g) = \sum_{j=1}^{|X|} \delta(g - f_j)
+$$
+
+$$
+	H_f(g) = \sum_{j=1}^{|X|} \delta(g - f_j) \cdot I[x_j]
+$$
+\begin{itemize}
+	\item $H_1(g)$ is a \textbf{frequency map}. It counts how many times the pattern $g$ appears in the whole image.
+	\item $H_f(g)$ is an \textbf{intensity map}. It adds up all the intensity values for every pixel that shares the pattern $g$. By using these hash spaces, we no longer care where a pixel is located in the image. We only care about its descriptor $f_i$.
+\end{itemize}
+
+Since we are just adding and multiplying, we can swap the order of the sum and the integral in the formula at \eqref{eq:kernel_estimate}. The final denoising formula simplifies into a ratio of two integrals:
+$$\tilde{I}_i = \frac{\int_{g\in\mathcal{F}} H_f(g) \cdot w_K(f_i - g) dg}{\int_{g\in\mathcal{F}} H_1(g) \cdot w_K(f_i - g) dg}$$
+
+\subsection{Discretization}
+Having defined the hash spaces above, our algorithm needs to store them. The problem is that our spaces are continous and we can't model them on the computer. The solution is to discretize those features and map them to bins. Every pixel's 4D descriptor $f_j$ is hashed into a specific bin by normalizing with a smoothing factor and rounding its values. By mapping multiple pixels into the same bin, the algorithm effectively groups terms in the NLM summation.
+
+\subsection{Smoothing factor}
+The amount of smoothing is governed by the smoothing parameter $h$, which is calculated based on the estimated noise standard deviation $\sigma$ in the image. The relationship is defined by the formula $h^{2}=2\sigma^{2}|P|\beta$, where $|P|$ represents the number of features in the patch descriptor. The tuning parameter $\beta$ is included to refine the filter's performance; while some methods set $\beta$ to one, experiments show that it should ideally decrease as the number of samples increases. Selecting an appropriate $\beta$ is critical, as a value that is too large can lead to overblurring and the merging of separate image structures, while a value that is too small results in insufficient denoising.
+
+\subsection{Weighting via Separable Convolution}
+Once we have the frequecy hashes populated the algorithm must account for the similarity between different bins.  In standard NLM, this is done by calculating weights between every pair of pixels, but in the hashed approach, this is achieved by convolving the hash spaces with the weighting kernel $w_k$.
+
+The intuition behind this is that each bin contains pixels with specific neighbourhood patterns. We need to do averaging of similar pixels (this is what NLM does), so this is a convolution with the weight kernel, allowing pixels to be influenced by \textbf{nearby bins}. The transition from a disorganized collection of pixels to a structured 4D grid allows us to treat the NLM weighting process as a signal processing task by convolving.
+
+Because the weighting kernel is axis-aligned (treating each neighbor intensity as independent), we can use \textbf{separable convolution}. Instead of one massive 4D operation, we perform four successive 1D convolutions, one along each axis of the 4D grid. The result of this step is two "blurred" hash spaces, $H_1'$ and $H_f'$, which now contain the weighted information from neighboring bins.
+
+$$
+	\tilde{I}_i = \frac{(w_K * H_f)(\mathbf{f}_i)}{(w_K * H_1)(\mathbf{f}_i)} = \frac{H'_f(\mathbf{f}_i)}{H'_1(\mathbf{f}_i)}.
+$$
+
+\subsection{Reconstruction}
+We reconstruct the denoised image using \textbf{direct nearest neighbor (NN)}. We divide $H_1'$ and $H_f'$ to obtain our denoised pixel: $$\tilde{I}_i = \frac{H_f'(f_i)}{H_1'(f_i)}$$ Direct NN mapping is the most computationally efficient, but least accurate approach. For every pixel $x_i$, the filtered intensity is derived by rounding the descriptor to the nearest integer coordinates and performing a direct lookup in the convolved hash spaces.
+
+\subsection{Artifacts}
+Nearest neighbour has significant drawbacks in terms of image quality. This discretization leads to the formation of stepping artifacts, which appear as blocky, homogeneous regions of intensity separated by sharp, artificial edges in areas that should vary smoothly. These artifacts take on a specific "star" appearance, because we are considering 4D features consisting of the neighbours of one pixel (which are "star" shaped: up, down, left, right).
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\linewidth]{res/hashednlm_zoomed4.pdf}
+	\caption{Hashed NLM Artifacts}
+\end{figure}
+
+\subsection{Reconstruction via Marginal-Linear Interpolation}
+After convolving, we are left with two blurred hash spaces, $H_f'$ and $H_1'$, which contain the weighted numerator and denominator for the NLM formula. However, because the neighbor intensities in our descriptor $f_i$ are continuous values, they usually fall between the integer centers of our discrete bins. To reconstruct the final image without steep jumps caused by assigning pixels to the nearest single bin, we must interpolate.
+
+Because interpolation in our 4D feature space is computationally expensive, the authors of the paper propose \textbf{marginal linear interpolation}. Marginal-Linear Interpolation only looks at the gradients along each of the 4 axes independently.
+
+We take the value of the nearest bin center $H[\text{round}(f)]$ and add the slopes (gradients) of the data for each of the 4 dimensions:
+$$
+	H(f_i) \approx H[\text{round}(f_i)] + \sum_{k=1}^4 (f_{ik} - \text{round}(f_{ik})) \frac{\partial H}{\partial f_{ik}}
+$$
+
+% rezulate standard
+\begin{figure}[H]
+	\centering
+	\makebox[\textwidth][c]{\includegraphics[width=1.4\linewidth]{res/hashednlm4.pdf}}
+	\caption{Hashed NLM Results}
+\end{figure}
+
+\subsection{Exploring different feature spaces}
+The method described above focused on using 4 neighbours of the pixel. We can choose to work with higher dimensional spaces, which of course require more memory. For instance, we can select 8 neighbours, adding the diagonals (top-left, top-right, bottom-left, bottom-right) and apply the same algorithm. While in theory this should give better results, it is not often the case. This 8D space in the case of 2D images results in bins too sparse with too few values.
+
+% imagine cu 8 neighbours
+\begin{figure}[t]
+	\centering
+	\makebox[\textwidth][c]{\includegraphics[width=1.4\linewidth]{res/hashednlm8.pdf}}
+	\caption{Hashed NLM Results With Larger Feature Space}
+\end{figure}
+
+
+\subsection{Adding locality}
+We see that this method is truly non-local, it is not like other NLM algorithms which are actually "semi-local". We are traversing the entire grid and assigning pixels to bins. Nonetheless, adding locality to NLM can yield good results. We see that our MCNLM uses this. Locality is relevant for denoising. For example, consider a background or a sky. Locality is not so advantageous in the case of edges.
+
+How can locality be added to hashed NLM. Locality can be added by simply adding two more dimensions to the feature vector. This 2D vector, $(x, y)$ that we use to extend our vector are the normalized coordinates of the pixel. In this fashion, the feature space is more complex, but a criterion for similarity between pixel is spatiality as well.
+
+% imagini cu rezulate cu locality
+\begin{figure}[H]
+	\centering
+	\makebox[\textwidth][c]{\includegraphics[width=1.0\linewidth]{res/hashednlm_zoomed6.pdf}}
+	\caption{Hashed NLM Results with Locality}
+\end{figure}
+
+
+\begin{algorithm}[H]
+	\caption{Hashed Non-Local Means Denoising}
+	\label{alg:hashed-nlm}
+	\begin{algorithmic}[1]
+		\Require Noisy image $I$, smoothing factor $h$, feature space dimension $P$
+		\Ensure Denoised image $\tilde{I}$
+		\State $h^2 \leftarrow 2\sigma^2 |P| \beta$ \Comment{Calculate smoothing parameter }
+		\State $\mathcal{F} \leftarrow \text{Create empty feature space in} |P|\text{-dimensional space}$ \State $H_1, H_f \leftarrow \text{Initialize frequency and intensity hash spaces to zero}$ \For{each pixel $x \in I$} \Comment{Populate Hash Spaces}
+		\State $f \leftarrow \text{Extract descriptor at } x$ \State $g \leftarrow \text{round}(f / h)$ \Comment{Map to discrete bin index }
+		\State $H_1[g] \leftarrow H_1[g] + 1$ \State $H_f[g] \leftarrow H_f[g] + I[x]$
+		\EndFor
+		\State $H_1' \leftarrow \text{SeparableConvolution}(H_1, w_K)$ \Comment{Weighted sum of counts }
+		\State $H_f' \leftarrow \text{SeparableConvolution}(H_f, w_K)$ \Comment{Weighted sum of intensities }
+		\For{each pixel $x \in I$} \Comment{Reconstruction }
+		\State $f \leftarrow \text{Extract descriptor at } x$ \State $\tilde{I}[x] \leftarrow H_1' / H_f'$
+		\EndFor
+		\State \Return $\tilde{I}$
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Complexity}
+Hashed NLM improves the standard NLM complexity of $O(N^2D^2)$ or $O(NS^2D^2)$. The complexity is essentially linear with respect to the number of pixels:
+\begin{itemize}
+	\item Hashing: $O(n)$
+	\item Convolution: $O(PKB)$ - performs $P$ 1D convolution across B bins with a kernel size of K.
+	\item Reconstruction: $O(n)$
+\end{itemize}
