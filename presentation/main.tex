@@ -1,0 +1,176 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usetheme{Madrid}
+\usecolortheme{seagull}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\usepackage{amsmath, amsfonts}
+\usepackage{graphicx}
+
+\graphicspath{{../docs/res/}}
+
+\title{Different Implementations of the NLM Denoising Algorithm}
+\author{Robu Petru-Razvan \and Verzotti Matteo-Alexandru \and Voaides-Negustor Robert-Ionut}
+\date{}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Motivation}
+  \begin{itemize}
+    \item Image noise is commonly modeled as additive white Gaussian noise.
+    \item Denoising should remove noise while preserving textures and edges.
+    \item Non-Local Means is effective but expensive at scale.
+  \end{itemize}
+  \vspace{0.15cm}
+  \begin{equation*}
+    y = x + \eta, \quad \eta \sim \mathcal{N}(0, \sigma)
+  \end{equation*}
+\end{frame}
+
+\begin{frame}{Non-Local Means}
+  \begin{block}{Patch-based weighted average}
+    \begin{equation*}
+      z(p) = \frac{1}{C(p)} \sum_{q \in \Omega} w(p, q)\, y(q),
+      \quad C(p) = \sum_{q \in \Omega} w(p, q)
+    \end{equation*}
+  \end{block}
+  \begin{block}{Standard similarity weight}
+    \begin{equation*}
+      w_i = \exp\left(-\frac{\lVert \mathbf{y} - \mathbf{x}_i \rVert^2}{2h_r^2}\right)
+    \end{equation*}
+  \end{block}
+  \begin{itemize}
+    \item Complexity: $\mathcal{O}(mnd)$ (or $\mathcal{O}(mD^2d)$ with a window).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Monte Carlo NLM: Sampling and Estimators}
+  \begin{itemize}
+    \item Sample reference patches with $I_j \sim \text{Bernoulli}(p_j)$.
+    \item Use sampled weights to approximate NLM efficiently.
+  \end{itemize}
+  \begin{block}{Unbiased estimators}
+    \begin{equation*}
+      A = \frac{1}{n} \sum_{j=1}^{n} x_j w_j \frac{I_j}{p_j},
+      \quad
+      B = \frac{1}{n} \sum_{j=1}^{n} w_j \frac{I_j}{p_j}
+    \end{equation*}
+  \end{block}
+  \begin{equation*}
+    Z = \frac{A}{B}
+  \end{equation*}
+  \begin{itemize}
+    \item $A$ and $B$ are unbiased; $Z$ is biased but concentrates as $n$ grows.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Monte Carlo NLM: Stochastic Approximation}
+  \begin{itemize}
+    \item Concentration bounds control the deviation $|Z - z|$.
+  \end{itemize}
+  \begin{block}{Simplified probability bound (uniform sampling)}
+    \begin{equation*}
+      \mathbb{P}(|Z - z| > \varepsilon)
+      \le 2 \exp\left(
+      -\frac{n\varepsilon^2}{2\left(\rho \sum_{j=1}^{n} \alpha_j^2 + \varepsilon/6\right)}
+      \right)
+    \end{equation*}
+  \end{block}
+  \begin{itemize}
+    \item $\alpha_j = \frac{w_j}{\sum_{k=1}^n w_k}$ and $\rho = \frac{1-p}{p}$.
+    \item Result: the error probability decays exponentially with the window size.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Spatial Sampling (Semi-Local NLM)}
+  \begin{equation*}
+    w_j = w_j^r \cdot w_j^s, \quad
+    w_j^s = \exp\left(-\frac{(d_2^j)^2}{2h_s^2}\right) \cdot \mathbb{I}\{d_\infty^j \leq \rho\}
+  \end{equation*}
+  \vspace{-0.15cm}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=0.9\linewidth,height=0.4\textheight,keepaspectratio]{mc_matches_1.pdf}
+      \vspace{-0.1cm}
+      \scriptsize Weight values in search window
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=0.9\linewidth,height=0.4\textheight,keepaspectratio]{mc_matches_2.pdf}
+      \vspace{-0.1cm}
+      \scriptsize Weights for sampled center pixels
+  \end{columns}
+\end{frame}
+
+\begin{frame}{KD-Tree NLM: Patch Search}
+  \begin{itemize}
+    \item Build a KD-Tree of patches; query $K$ nearest neighbors.
+    \item Faster similarity search than brute-force within a window.
+    \item Trade-off: accuracy vs speed and parallelization overhead.
+  \end{itemize}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=0.9\linewidth]{knn_vs_mc_spatial.pdf}
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=0.9\linewidth]{knn_spatial_analysis.pdf}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{KD-Tree NLM: Results}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=0.98\linewidth]{methods_comparison_clock.pdf}
+    \column{0.5\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{methods_comparison_clock_2.pdf}
+  \end{columns}
+  \vspace{0.1cm}
+  \begin{itemize}
+    \item KD-Tree improves detail in some textured regions, but can add noise in flat areas.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Hashed NLM}
+  \begin{itemize}
+    \item Approximate patch matching via hashing to speed up search.
+    \item Produces competitive denoising with distinctive artifacts.
+  \end{itemize}
+  \vspace{0.1cm}
+  \centering
+  \includegraphics[width=0.85\linewidth]{hashednlm.pdf}
+\end{frame}
+
+\begin{frame}{Noise Estimation via FFT}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{itemize}
+        \item Estimate $\sigma$ from high-frequency components.
+        \item FFT $\rightarrow$ mask high frequencies $\rightarrow$ inverse FFT.
+        \item Use $\sigma = \text{std}(noise)$ for denoising.
+      \end{itemize}
+    \column{0.52\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{noise_comparison_visual2.pdf}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Conclusion}
+  \begin{itemize}
+    \item MCNLM reduces NLM cost while preserving image structure.
+    \item Spatial weighting and KD-Tree search are viable alternatives.
+    \item Hashed NLM and FFT noise estimation provide additional practical speedups.
+  \end{itemize}
+  \vspace{0.2cm}
+  \centering
+  \large Thanks!
+\end{frame}
+
+\end{document}
