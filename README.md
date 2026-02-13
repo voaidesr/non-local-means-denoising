@@ -9,6 +9,7 @@ This repository contains the implementation of multiple NLM Denoising algorithms
 - FFT-based noise estimation
 
 ## Paper
+The paper is available here: []()
 - LaTeX source: `docs/main.tex` and `docs/sections/`
 - Figures/plots: `docs/res/`
 
